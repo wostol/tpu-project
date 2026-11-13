@@ -246,33 +246,46 @@ html {
   letter-spacing: 0.01em;
 }
 
+/* Бейдж корзины — компактный, в брендовом зелёном.
+   Прежний дизайн (height:18, border:2px solid #fff, top:-7, right:-9)
+   сильно выпирал за pill и перекрывал соседние иконки. Теперь:
+   - 14×14 px (с padding для двузначных чисел)
+   - позиционирован относительно .pill__icon (а не всего pill) —
+     сидит в правом верхнем углу иконки
+   - без белой ободки 2px (визуально утолщала), только мягкая тень
+   - цвет — брендовый зелёный var(--brand-green), а не тёмный #0e7a2a
+   - короче анимация pop (0.25s вместо 0.35s) — не привлекает лишнее внимание */
 .pill__badge {
   position: absolute;
-  top: -7px;
-  right: -9px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
+  top: -3px;
+  right: -5px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 4px;
   box-sizing: border-box;
   border-radius: 999px;
-  background: var(--badge-bg);
+  background: var(--brand-green);
   color: #fff;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid #fff;
-  animation: badge-pop 0.35s cubic-bezier(0.34, 1.4, 0.64, 1);
+  border: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28);
+  pointer-events: none;
+  animation: badge-pop 0.25s cubic-bezier(0.34, 1.4, 0.64, 1);
 }
 
 @keyframes badge-pop {
   from {
-    transform: scale(0);
+    transform: scale(0.4);
+    opacity: 0;
   }
   to {
     transform: scale(1);
+    opacity: 1;
   }
 }
 
@@ -453,11 +466,9 @@ html {
     visibility: visible;
   }
 
-  /* Бейдж корзины не перекрывает tooltip */
-  .nav-group--actions .pill__badge {
-    top: -4px;
-    right: -4px;
-  }
+  /* Бейдж корзины — позиционирование наследуется из базового правила
+     (.pill__badge top:-3 right:-5 относительно .pill__icon), здесь
+     не переопределяем, чтобы на всех viewport он был одинаковым. */
 }
 /* ---------- Мобильная навигация (<768px) ---------- */
 @media (max-width: 768px) {

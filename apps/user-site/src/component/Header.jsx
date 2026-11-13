@@ -4,6 +4,9 @@ import gsap from "gsap";
 import useAuth from "../auth/useAuth";
 import logo from "./lionsib.svg";
 import "./Header.css";
+// Прямая подписка на zustand store корзины — надёжнее, чем чтение localStorage
+// + window event. Zustand сам ре-рендерит Header при изменении items.
+import { useCartStore, cartTotalCount } from "../Shop/cartStore.js";
 
 const NAV_ITEMS = [
   { to: "/", label: "Главная", icon: "icon-home", isActive: (p) => p === "/" },
@@ -24,11 +27,6 @@ const NAV_ITEMS = [
 const MOBILE_QUERY = "(max-width: 768px)";
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
-export const CART_EVENT = "cart:change";
-export const notifyCartChange = () => {
-  window.dispatchEvent(new Event(CART_EVENT));
-};
-
 /* ---------- утилиты ---------- */
 
 function useMediaQuery(query) {
@@ -45,53 +43,18 @@ function useMediaQuery(query) {
   return matches;
 }
 
-function readCartCount() {
-  try {
-    const raw = localStorage.getItem("cart");
-    if (!raw) return 0;
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return 0;
-    return parsed.reduce((sum, item) => {
-      const q = Number(item?.quantity ?? 1);
-      return sum + (Number.isFinite(q) && q > 0 ? Math.floor(q) : 0);
-    }, 0);
-  } catch {
-    return 0;
-  }
-}
-
-function useCartCount(enabled) {
-  const [count, setCount] = useState(readCartCount);
-  useEffect(() => {
-    if (!enabled) {
-      setCount(0);
-      return;
-    }
-    const update = () => setCount(readCartCount());
-    const onStorage = (e) => {
-      if (e.key === "cart" || e.key === null) update();
-    };
-    update();
-    window.addEventListener(CART_EVENT, update);
-    window.addEventListener("storage", onStorage);
-    window.addEventListener("focus", update);
-    return () => {
-      window.removeEventListener(CART_EVENT, update);
-      window.removeEventListener("storage", onStorage);
-      window.removeEventListener("focus", update);
-    };
-  }, [enabled]);
-  return count;
-}
-
 /* ---------- Pill ---------- */
 
+// aria-label нужен CSS-tooltip (.pill::after { content: attr(aria-label) }) —
+// без него tooltip пустой и не виден. title — нативный fallback для всех браузеров.
 const Pill = ({ to, icon, label, active, badge = 0, onClick }) => (
   <Link
     to={to}
     data-pill=""
     className={`pill${active ? " is-active" : ""}`}
     aria-current={active ? "page" : undefined}
+    aria-label={label}
+    title={label}
     onClick={onClick}
   >
     <span className="pill__icon">
@@ -125,7 +88,11 @@ const Header = () => {
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const cartCount = useCartCount(isAuthenticated);
+  // Прямая подписка на zustand store: ре-рендерится автоматически при
+  // изменении items (через useCartStore selector). Если пользователь не
+  // авторизован — бейдж не показываем (0).
+  const rawCartCount = useCartStore((s) => cartTotalCount(s.items));
+  const cartCount = isAuthenticated ? rawCartCount : 0;
 
   const headerRef = useRef(null);
   const navRef = useRef(null);
@@ -505,6 +472,8 @@ const Header = () => {
                     data-pill=""
                     className="pill"
                     onClick={handleLoginClick}
+                    aria-label="Войти"
+                    title="Войти"
                   >
                     <span className="pill__icon">
                       <svg

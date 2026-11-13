@@ -1,11 +1,13 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+export const CART_STORAGE_KEY = "sportclub-cart";
+export const CART_CHANGE_EVENT = "cart:change";
+
 export const useCartStore = create(
   persist(
     (set) => ({
-      items: [], // [{ productId, quantity }] — только id и количество
-
+      items: [], // [{ productId, quantity }]
       add: (productId, quantity = 1) =>
         set((state) => {
           const existing = state.items.find((i) => i.productId === productId);
@@ -20,7 +22,6 @@ export const useCartStore = create(
           }
           return { items: [...state.items, { productId, quantity }] };
         }),
-
       setQuantity: (productId, quantity) =>
         set((state) => ({
           items:
@@ -30,24 +31,27 @@ export const useCartStore = create(
                   i.productId === productId ? { ...i, quantity } : i,
                 ),
         })),
-
       remove: (productId) =>
         set((state) => ({
           items: state.items.filter((i) => i.productId !== productId),
         })),
-
       clear: () => set({ items: [] }),
     }),
-    { name: "sportclub-cart" }, // ключ в localStorage
+    { name: CART_STORAGE_KEY },
   ),
 );
 
 export const cartTotalCount = (items) =>
-  items.reduce((sum, i) => sum + i.quantity, 0);
+  items.reduce((sum, i) => sum + (Number(i.quantity) || 0), 0);
 
-// Разовая миграция старой корзины (ключ "cart" из ранней версии с мок-данными,
-// формат [{uuid, id, name, ...}]) в этот стор. Позиции без числового id
-// отбрасываются. После вызова старый ключ удаляется.
+/** Мгновенно уведомляем Header об изменении корзины */
+useCartStore.subscribe((state, prevState) => {
+  if (state.items !== prevState.items) {
+    window.dispatchEvent(new Event(CART_CHANGE_EVENT));
+  }
+});
+
+/** Миграция старой корзины (ключ "cart") в zustand стор */
 export const migrateLegacyCart = () => {
   try {
     const legacy = JSON.parse(localStorage.getItem("cart") || "[]");
@@ -62,7 +66,7 @@ export const migrateLegacyCart = () => {
       });
     }
   } catch {
-    // повреждённый JSON — просто забываем старую корзину
+    // битый JSON — игнорируем
   }
   localStorage.removeItem("cart");
 };

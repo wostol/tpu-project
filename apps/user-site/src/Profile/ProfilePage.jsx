@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useImageLoading } from "../hooks/useLoading";
 import "./ProfilePage.css";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import logo from "../component/lionsib.svg";
@@ -12,7 +13,7 @@ import {
   StatisticsTab,
   NotificationsTab,
 } from "./tabs";
-import { useProfile } from "./useProfile"; // ← новый импорт
+import ExitButton from "../component/ExitButton"; // ← ДОБАВИТЬ
 
 function ProfilePage() {
   const [searchParams] = useSearchParams();
@@ -21,21 +22,19 @@ function ProfilePage() {
   );
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
-
-  // Auth — только для «залогинен ли» и базового user (email, ФИО, группа)
-  const { user, loading: authLoading, logout } = useAuth();
-
-  // ⭐ Баланс и уровни — из БД через GET /api/profile/me
-  const { profile, loading: profileLoading } = useProfile();
-
+  const [allLevels, setAllLevels] = useState([]);
+  const [levelsLoading, setLevelsLoading] = useState(true);
+  const { user, loading, updateUser, logout } = useAuth();
   const navigate = useNavigate();
 
-  // Загрузка заказов (осталась отдельным запросом — это список, не профиль)
+  const totalPoints = user?.totalPoints || 0;
+
+  // Загрузка заказов
   useEffect(() => {
     const fetchOrders = async () => {
       try {
         const data = await apiRequest("/profile/orders");
-        setOrders(Array.isArray(data) ? data : []);
+        setOrders(data);
       } catch (error) {
         console.error("Ошибка загрузки заказов:", error);
         setOrders([]);
@@ -45,6 +44,27 @@ function ProfilePage() {
     };
     fetchOrders();
   }, []);
+
+  useEffect(() => {
+    const fetchLevels = async () => {
+      try {
+        const data = await apiRequest("/levels");
+        setAllLevels(data);
+      } catch (error) {
+        console.error("Ошибка загрузки уровней:", error);
+      } finally {
+        setLevelsLoading(false);
+      }
+    };
+    fetchLevels();
+  }, []);
+
+  const handleUpdateName = () => {
+    const newName = prompt("Введите новое имя:", user.name || "");
+    if (newName && newName !== user.name) {
+      updateUser({ name: newName });
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -56,7 +76,6 @@ function ProfilePage() {
     }
   };
 
-  // ФИО и учебные данные — из auth.user (они статичны в сессии, баланс тут не нужен)
   const userFullName =
     user?.lastName && user?.firstName && user?.middleName
       ? `${user.lastName} ${user.firstName} ${user.middleName}`
@@ -72,13 +91,30 @@ function ProfilePage() {
     ? "ИШИТР"
     : userInstitute;
 
-  // Данные достижений (пока заглушка — потом отдельный эндпоинт)
+  const getLevelStatus = (levelMinPoints) => {
+    if (totalPoints >= levelMinPoints) {
+      return "completed";
+    }
+    return "locked";
+  };
+
+  const getCurrentLevel = () => {
+    const sortedLevels = [...allLevels].sort(
+      (a, b) => b.min_points - a.min_points,
+    );
+    return (
+      sortedLevels.find((level) => totalPoints >= level.min_points) ||
+      allLevels[0]
+    );
+  };
+
   const achievementsList = {
     ach1: false,
     ach2: false,
     ach3: false,
     ach4: false,
   };
+
   const achievementsData = [
     {
       id: 1,
@@ -110,14 +146,35 @@ function ProfilePage() {
     },
   ];
 
-  // ⭐ Баланс и текущий уровень — ТОЛЬКО из profile (БД), никогда из user.totalPoints
-  const totalPoints = profile?.totalPoints ?? 0;
-  const currentLevel = profile?.level ?? null;
-  const allLevels = profile?.levels ?? [];
+  const displayOrders = orders.length > 0 ? orders : [];
+  const orderImageSources = displayOrders.map((o) => o.image);
+  const { loaded: orderImagesLoaded } = useImageLoading([
+    ...orderImageSources,
+    logo,
+  ]);
 
-  // Скелетон показываем, пока ждём auth + профиль + заказы.
-  // Картинки больше не gate'ят рендер — SafeImage фолбэком подставит плейсхолдер.
-  if (authLoading || profileLoading || ordersLoading) {
+  const currentLevel = getCurrentLevel();
+
+  const getNextLevelMinPoints = () => {
+    const nextLevel = allLevels.find((level) => level.min_points > totalPoints);
+    return nextLevel ? nextLevel.min_points : totalPoints + 100;
+  };
+
+  const getPointsToNextLevel = () => {
+    const nextLevelMin = getNextLevelMinPoints();
+    return Math.max(0, nextLevelMin - totalPoints);
+  };
+
+  const getProgressPercentage = () => {
+    const prevLevelMin = currentLevel?.min_points || 0;
+    const nextLevelMin = getNextLevelMinPoints();
+    const range = nextLevelMin - prevLevelMin;
+    if (range <= 0) return 100;
+    const progress = ((totalPoints - prevLevelMin) / range) * 100;
+    return Math.min(100, Math.max(0, progress));
+  };
+
+  if (loading || levelsLoading || ordersLoading || !orderImagesLoaded) {
     return (
       <div className="profile-page">
         <ProfileSkeleton />
@@ -129,12 +186,7 @@ function ProfilePage() {
     <div className="profile-page">
       <header className="profile-header">
         <h1 className="profile-title">Личный кабинет</h1>
-        <button className="profile-exit" onClick={handleLogout}>
-          <span className="log-img">
-            <img src={logo} alt="Выход" className="log" />
-          </span>
-          <span className="log-text">Выход</span>
-        </button>
+        <ExitButton onLogout={handleLogout} /> {/* ← ЗАМЕНИТЬ */}
       </header>
 
       <div className="profile-tabs">
@@ -175,7 +227,6 @@ function ProfilePage() {
 
       <div className="tab-content">
         {activeTab === "notifications" && <NotificationsTab />}
-
         {activeTab === "points" && (
           <PointsTab
             totalPoints={totalPoints}
@@ -183,7 +234,6 @@ function ProfilePage() {
             allLevels={allLevels}
           />
         )}
-
         {activeTab === "achievements" && (
           <AchievementsTab
             achievementsData={achievementsData}
@@ -192,9 +242,7 @@ function ProfilePage() {
             currentLevel={currentLevel}
           />
         )}
-
-        {activeTab === "orders" && <OrdersTab orders={orders} />}
-
+        {activeTab === "orders" && <OrdersTab orders={displayOrders} />}
         {activeTab === "statictick" && <StatisticsTab />}
       </div>
     </div>

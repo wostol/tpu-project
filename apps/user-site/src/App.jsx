@@ -17,6 +17,7 @@ import { LoadingProvider } from "./context/PageLoadingContext";
 import { BASE_URL } from "./config";
 import HomePage from "./pages/HomePage";
 import OrderDetailPage from "./pages/OrderDetailPage";
+import ScrollToTop from "./component/ScrollToTop";
 
 function AppContent() {
   return (
@@ -81,6 +82,7 @@ function AppContent() {
 function App() {
   return (
     <Router basename={BASE_URL}>
+      <ScrollToTop />
       <LoadingProvider>
         <AppContent />
       </LoadingProvider>
