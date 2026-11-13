@@ -1,0 +1,160 @@
+// Prisma schema для TPU Project backend.
+//
+// По умолчанию используется SQLite (файл ./dev.db) — не требует Docker.
+// Чтобы переключиться на PostgreSQL:
+//   1. В .env: DATABASE_URL="postgresql://dev:dev@localhost:5432/tpu_dev"
+//   2. Здесь: provider = "postgresql"
+//   3. docker compose -f docker/docker-compose.dev.yml up -d postgres
+//   4. npm --workspace apps/backend run prisma:migrate
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  middleName   String?
+  username     String?
+  role         String   @default("USER")
+  group        String?
+  faculty      String?
+  totalPoints  Int      @default(0)
+  tpuId        Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  registrations EventRegistration[]
+  orders        Order[]
+  notifications Notification[]
+  pointsHistory PointsHistory[]
+}
+
+model Event {
+  id                   Int      @id @default(autoincrement())
+  title                String
+  description          String
+  fullDescription      String?
+  eventType            String   @default("sport")
+  category             String?
+  status               String   @default("published")
+  startDate            DateTime
+  endDate              DateTime?
+  registrationDeadline DateTime
+  participantPoints    Int      @default(0)
+  fanPoints            Int      @default(0)
+  maxParticipants      Int?
+  price                Int      @default(0)
+  duration             String?
+  level                String?
+  rules                String?
+  equipment            String?
+  address              String?
+  location             String
+  format               String?
+  requirements         String?
+  contactEmail         String?
+  contactPhone         String?
+  teamName             String?
+  organizerId          Int?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  registrations EventRegistration[]
+}
+
+model EventRegistration {
+  id               Int      @id @default(autoincrement())
+  userId           Int
+  eventId          Int
+  registrationType String   @default("participant")
+  status           String   @default("registered")
+  registeredAt     DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+  @@index([eventId])
+}
+
+model ShopItem {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  price       Int
+  image       String?
+  points      Int      @default(0)
+  createdAt   DateTime @default(now())
+  orderItems OrderItem[]
+}
+
+
+model Order {
+  id          Int         @id @default(autoincrement())
+  userId      Int
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totalPoints Int
+  status      String      @default("completed")
+  items       OrderItem[]
+  createdAt   DateTime    @default(now())
+}
+
+model OrderItem {
+  id        Int       @id @default(autoincrement())
+  orderId   Int
+  order     Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId Int?
+  product   ShopItem? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  // снапшот на момент оформления (immutable)
+  name       String
+  image      String
+  points     Int
+  quantity   Int
+  linePoints Int
+
+  createdAt  DateTime  @default(now())
+}
+
+model Level {
+  id          Int      @id @default(autoincrement())
+  name        String
+  minPoints   Int
+  description String?
+  color       String   @default("#000000")
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  type      String   @default("info")
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PointsHistory {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  points    Int
+  reason    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}

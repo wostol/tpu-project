@@ -1,0 +1,133 @@
+.detail {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+  color: #10253a;
+}
+.back {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #003466;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 0 0 24px;
+}
+.back:hover {
+  text-decoration: underline;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid #e2e8e9;
+  padding-bottom: 20px;
+  margin-bottom: 8px;
+}
+.title {
+  margin: 0;
+  font-size: 28px;
+  color: #003466;
+}
+.meta {
+  margin: 6px 0 0;
+  color: #6c757d;
+  font-size: 14px;
+}
+.status {
+  flex-shrink: 0;
+  background: #e7f1eb;
+  color: #003466;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.items {
+  display: flex;
+  flex-direction: column;
+}
+.item {
+  display: grid;
+  grid-template-columns: 88px 1fr auto;
+  gap: 16px;
+  align-items: center;
+  padding: 16px 0;
+  border-bottom: 1px solid #e2e8e9;
+}
+.itemImage {
+  width: 88px;
+  height: 88px;
+  overflow: hidden;
+  border: 1px solid #d6e0e3;
+  background: #eaf0ef;
+}
+.itemImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.itemInfo {
+  min-width: 0;
+}
+.itemName {
+  margin: 0;
+  font-size: 17px;
+  color: #003466;
+}
+.itemLine {
+  margin: 6px 0 0;
+  color: #6c757d;
+  font-size: 13px;
+}
+.itemTotal {
+  font-weight: 700;
+  color: #003466;
+  font-size: 16px;
+  text-align: right;
+}
+
+.total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 2px solid #003466;
+  font-size: 16px;
+}
+.totalValue {
+  font-size: 20px;
+  font-weight: 700;
+  color: #003466;
+}
+
+.error {
+  padding: 40px;
+  text-align: center;
+  color: #b00020;
+}
+
+@media (max-width: 560px) {
+  .item {
+    grid-template-columns: 64px 1fr;
+    grid-template-areas:
+      "img name"
+      "img total";
+  }
+  .itemImage {
+    grid-area: img;
+    width: 64px;
+    height: 64px;
+  }
+  .itemInfo {
+    grid-area: name;
+  }
+  .itemTotal {
+    grid-area: total;
+    text-align: right;
+  }
+}

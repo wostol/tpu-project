@@ -1,0 +1,74 @@
+[
+  {
+    "id": 1,
+    "title": "Межфакультетский кубок по футболу",
+    "startDate": "2026-05-15T15:00:00.000Z",
+    "location": "Стадион «Политехник»",
+    "description": "Ежегодный турнир сборных факультетов. Формат — 11×11, групповой этап + плей-офф. Призовой фонд — кубок ректора.",
+    "participantPoints": 150,
+    "fanPoints": 30,
+    "registrationDeadline": "2026-05-10T23:59:59.000Z",
+    "status": "active",
+    "isRegistered": false
+  },
+  {
+    "id": 2,
+    "title": "Стритболный марафон 3x3",
+    "startDate": "2026-06-01T12:00:00.000Z",
+    "location": "Открытая площадка М2",
+    "description": "Уличный баскетбол 3×3. Команды формируются самостоятельно, до 4 человек в составе. Жеребьёвка в день соревнований.",
+    "participantPoints": 100,
+    "fanPoints": 25,
+    "registrationDeadline": "2026-05-28T23:59:59.000Z",
+    "status": "active",
+    "isRegistered": false
+  },
+  {
+    "id": 3,
+    "title": "Ночная лига волейбола",
+    "startDate": "2026-06-20T19:00:00.000Z",
+    "location": "Спорткомплекс «Здоровье»",
+    "description": "Серия ночных матчей по классическому волейболу 6×6. Освещение зала, судейство — студенческая лига.",
+    "participantPoints": 120,
+    "fanPoints": 40,
+    "registrationDeadline": "2026-06-15T23:59:59.000Z",
+    "status": "active",
+    "isRegistered": false
+  },
+  {
+    "id": 4,
+    "title": "Заплыв «Буревестник»",
+    "startDate": "2026-07-10T10:00:00.000Z",
+    "location": "Университетский бассейн",
+    "description": "Заплыв на 50 и 100 метров вольным стилем. Дистанции — мужские и женские категории. Награды — грамоты и баллы.",
+    "participantPoints": 80,
+    "fanPoints": 15,
+    "registrationDeadline": "2026-07-05T23:59:59.000Z",
+    "status": "active",
+    "isRegistered": false
+  },
+  {
+    "id": 5,
+    "title": "Турнир по настольному теннису",
+    "startDate": "2026-04-25T14:00:00.000Z",
+    "location": "Корпус 8, спортзал №3",
+    "description": "Олимпийская система, до 2 побед в партии. Открытая регистрация для всех студентов и сотрудников.",
+    "participantPoints": 60,
+    "fanPoints": 10,
+    "registrationDeadline": "2026-04-22T23:59:59.000Z",
+    "status": "active",
+    "isRegistered": false
+  },
+  {
+    "id": 6,
+    "title": "Шахматный турнир «Белая ладья»",
+    "startDate": "2026-05-30T11:00:00.000Z",
+    "location": "ДК «Политехник», малый зал",
+    "description": "Классические шахматы, швейцарская система в 7 туров. Контроль времени — 15 минут + 10 секунд инкремент.",
+    "participantPoints": 70,
+    "fanPoints": 20,
+    "registrationDeadline": "2026-05-27T23:59:59.000Z",
+    "status": "active",
+    "isRegistered": false
+  }
+]

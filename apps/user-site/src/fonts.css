@@ -1,0 +1,31 @@
+/* Шрифты Kontora.
+   Файлы лежат в public/fonts/kontora/ — Vite отдаёт содержимое public по корневому пути,
+   поэтому URL в CSS — абсолютные от корня: /fonts/kontora/...
+   Раньше был format('woff2') для .woff файлов — это ошибка, убрали. */
+
+@font-face {
+  font-family: 'Kontora';
+  src: local('Kontora'),
+       url('/fonts/kontora/Kontora.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Kontora';
+  src: local('Kontora'),
+       url('/fonts/kontora/Kontora_bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Kontora';
+  src: local('Kontora'),
+       url('/fonts/kontora/Kontora_thin.woff') format('woff');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}

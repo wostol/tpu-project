@@ -1,0 +1,10 @@
+{
+  "id": 1,
+  "firstName": "Иван",
+  "lastName": "Петров",
+  "email": "ivan.petrov@tpu.ru",
+  "group": "8К32",
+  "faculty": "ИНК",
+  "points": 280,
+  "registeredEvents": [3]
+}

@@ -1,0 +1,567 @@
+@import url("../fonts.css");
+
+:root {
+  --header-h: 76px;
+  --header-h-compact: 64px;
+  --brand-blue: #003466;
+  --brand-green: #28be46;
+  --badge-bg: #0e7a2a;
+  /* п.3: шапка прозрачная — контент просвечивает */
+  --header-bg: rgba(255, 255, 255, 0.45);
+  --header-bg-scrolled: rgba(255, 255, 255, 0.7);
+  --pill-hover-bg: rgba(0, 52, 102, 0.07);
+  --pill-active-text: #fff;
+}
+
+html {
+  scroll-padding-top: var(--header-h);
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  width: 100%;
+  font-family: "Kontora", system-ui, sans-serif;
+  color: #000;
+  background: var(--header-bg);
+  -webkit-backdrop-filter: saturate(140%) blur(10px);
+  backdrop-filter: saturate(140%) blur(10px);
+  border-bottom: 1px solid rgba(0, 52, 102, 0.08);
+  box-shadow: none;
+  transition:
+    background-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.header.is-scrolled {
+  background: var(--header-bg-scrolled);
+  box-shadow: 0 4px 20px rgba(0, 26, 51, 0.08);
+}
+
+@supports not (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
+  .header {
+    background: rgba(255, 255, 255, 0.92);
+  }
+}
+
+/* ---------- Контейнер ---------- */
+.header__container {
+  width: 100%;
+  max-width: 1280px;
+  margin-inline: auto;
+  padding-inline: 24px;
+}
+
+.header__inner {
+  display: flex;
+  align-items: center;
+  min-height: var(--header-h);
+}
+
+.header.is-scrolled .header__inner {
+  min-height: var(--header-h-compact);
+}
+
+/* ---------- п.4: Логотип + «СПОРТКЛУБ ТПУ / ПРОГРАММА ЛОЯЛЬНОСТИ» ---------- */
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+  height: 44px;
+  text-decoration: none;
+  border-radius: 8px;
+}
+
+.brand__logo {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+.header.is-scrolled .brand__logo {
+  width: 40px;
+  height: 40px;
+}
+
+.brand__text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.brand__title {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--brand-blue);
+  white-space: nowrap;
+}
+
+.brand__subtitle {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  color: rgba(0, 52, 102, 0.6);
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+
+.header.is-scrolled .brand__title {
+  font-size: 15px;
+}
+.header.is-scrolled .brand__subtitle {
+  font-size: 9px;
+}
+
+.brand:focus-visible {
+  outline: 2px solid var(--brand-blue);
+  outline-offset: 3px;
+}
+
+/* ---------- Навигация ---------- */
+.main-nav {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  margin-left: 32px;
+  min-width: 0;
+}
+
+.nav-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nav-group--actions {
+  margin-left: auto;
+  padding-left: 24px;
+}
+
+.nav-group__item {
+  display: flex;
+}
+
+/* Плашка-индикатор (GSAP) */
+.nav-indicator {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: 44px;
+  margin-top: -22px;
+  width: 0;
+  opacity: 0;
+  border-radius: 999px;
+  background: var(--brand-blue);
+  pointer-events: none;
+  z-index: 0;
+  will-change: transform, width, opacity;
+  list-style: none; /* убираем маркер списка */
+  display: block; /* не участвует в flex как list-item */
+}
+
+/* ---------- Pill ---------- */
+.pill {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  min-width: 44px;
+  padding: 0 14px;
+  gap: 8px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--brand-blue);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    color 0.25s ease,
+    background-color 0.2s ease;
+}
+
+.pill:hover:not(.is-active) {
+  background: var(--pill-hover-bg);
+}
+
+.pill:focus-visible {
+  outline: 2px solid var(--brand-blue);
+  outline-offset: 3px;
+}
+
+.pill.is-active {
+  color: var(--pill-active-text);
+}
+
+.pill__icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex: none;
+}
+
+.pill__svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+  transition: transform 0.35s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.pill.is-active .pill__svg {
+  transform: scale(1.06);
+}
+
+/* Подпись — всегда видна */
+.pill__label {
+  display: inline-block;
+  white-space: nowrap;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.pill__badge {
+  position: absolute;
+  top: -7px;
+  right: -9px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  background: var(--badge-bg);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #fff;
+  animation: badge-pop 0.35s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+@keyframes badge-pop {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+/* ---------- Бургер ---------- */
+.burger {
+  display: none; /* скрыт на десктопе */
+  position: relative;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0; /* не сжимается */
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  z-index: 1010;
+  margin-left: auto; /* прижимает к правому краю */
+}
+
+.burger__line {
+  position: absolute;
+  left: 10px;
+  width: 24px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--brand-blue);
+  transition:
+    transform 0.3s ease,
+    opacity 0.2s ease;
+}
+
+.burger__line:nth-child(1) {
+  transform: translateY(-7px);
+}
+.burger__line:nth-child(2) {
+  transform: translateY(0);
+}
+.burger__line:nth-child(3) {
+  transform: translateY(7px);
+}
+
+.burger.is-open .burger__line:nth-child(1) {
+  transform: rotate(45deg);
+}
+.burger.is-open .burger__line:nth-child(2) {
+  opacity: 0;
+}
+.burger.is-open .burger__line:nth-child(3) {
+  transform: rotate(-45deg);
+}
+
+.burger:focus-visible {
+  outline: 2px solid var(--brand-blue);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.menu-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 20, 40, 0.45);
+  opacity: 0;
+  visibility: hidden;
+  z-index: 1004;
+}
+
+.icon-sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* ---------- Планшеты ---------- */
+@media (max-width: 1024px) {
+  .header__container {
+    padding-inline: 20px;
+  }
+
+  .main-nav {
+    margin-left: 20px;
+  }
+
+  .nav-group--actions {
+    padding-left: 16px;
+  }
+
+  .brand__title {
+    font-size: 14px;
+  }
+
+  .brand__subtitle {
+    font-size: 9px;
+  }
+}
+/* ---------- Планшеты: actions только иконками + tooltip ---------- */
+@media (max-width: 1200px) and (min-width: 769px) {
+  .header__container {
+    padding-inline: 20px;
+  }
+
+  .main-nav {
+    margin-left: 24px;
+  }
+
+  /* Скрываем подписи в actions-группе */
+  .nav-group--actions .pill__label {
+    display: none;
+  }
+
+  /* Центрируем иконки, уменьшаем padding */
+  .nav-group--actions .pill {
+    padding: 0 12px;
+    min-width: 44px;
+    justify-content: center;
+    position: relative;
+  }
+
+  /* Основные разделы чуть компактнее */
+  .nav-group--main .pill {
+    padding: 0 10px;
+  }
+
+  .nav-group--main .pill__label {
+    font-size: 14px;
+  }
+
+  /* Tooltip для иконок actions */
+  .nav-group--actions .pill::after {
+    content: attr(aria-label);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 6px 10px;
+    background: var(--brand-blue);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 6px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      opacity 0.2s ease,
+      visibility 0.2s ease;
+    z-index: 1020;
+    box-shadow: 0 2px 8px rgba(0, 26, 51, 0.15);
+  }
+
+  /* Стрелочка вниз у tooltip */
+  .nav-group--actions .pill::before {
+    content: "";
+    position: absolute;
+    bottom: calc(100% + 2px);
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: var(--brand-blue);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      opacity 0.2s ease,
+      visibility 0.2s ease;
+    z-index: 1020;
+  }
+
+  .nav-group--actions .pill:hover::after,
+  .nav-group--actions .pill:focus-visible::after {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .nav-group--actions .pill:hover::before,
+  .nav-group--actions .pill:focus-visible::before {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  /* Бейдж корзины не перекрывает tooltip */
+  .nav-group--actions .pill__badge {
+    top: -4px;
+    right: -4px;
+  }
+}
+/* ---------- Мобильная навигация (<768px) ---------- */
+@media (max-width: 768px) {
+  .header__container {
+    padding-inline: 16px;
+  }
+
+  .burger {
+    display: block; /* показываем бургер */
+    margin-left: auto; /* всегда справа */
+    flex-shrink: 0;
+  }
+
+  .main-nav {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: min(86vw, 380px);
+    height: 100dvh;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    margin-left: 0;
+    padding: calc(var(--header-h) + 16px) 16px 24px;
+    background: rgba(255, 255, 255, 0.98);
+    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
+    box-shadow: -8px 0 30px rgba(0, 26, 51, 0.12);
+    overflow-y: auto;
+    visibility: hidden;
+    z-index: 1005;
+  }
+
+  .nav-group {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .nav-group--actions {
+    margin-left: 0;
+    padding-left: 0;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(0, 52, 102, 0.1);
+  }
+
+  .nav-indicator {
+    display: none;
+  }
+
+  .pill {
+    width: 100%;
+    height: 52px;
+    justify-content: flex-start;
+    padding: 0 14px;
+  }
+
+  .pill__label {
+    font-size: 16px;
+  }
+
+  .pill.is-active {
+    background: var(--brand-blue);
+    color: #fff;
+  }
+
+  .pill__badge {
+    position: static;
+    margin-left: auto;
+    border: none;
+  }
+
+  .brand__title {
+    font-size: 15px;
+  }
+
+  .brand__subtitle {
+    font-size: 9px;
+  }
+}
+
+/* Маленькие мобильные */
+@media (max-width: 425px) {
+  .header__container {
+    padding-inline: 14px;
+  }
+
+  .brand__title {
+    font-size: 14px;
+  }
+
+  .brand__subtitle {
+    font-size: 8px;
+    letter-spacing: 0.08em;
+  }
+
+  .brand__logo {
+    width: 42px;
+    height: 42px;
+  }
+}
+
+/* ---------- Reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .header,
+  .header__inner,
+  .brand__logo,
+  .pill,
+  .pill__svg,
+  .burger__line {
+    transition: none !important;
+  }
+  .pill__badge {
+    animation: none;
+  }
+}

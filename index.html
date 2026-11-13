@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Шапка сайта</title>
+    <style>
+      :root {
+        --brand: #003466;
+        --ink: #000000;
+        --paper: #ffffff;
+        --accent: #28be46;
+        --header-h: 68px;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: Inter, Manrope, system-ui, sans-serif;
+        color: var(--ink);
+        background: var(--paper);
+      }
+
+      /* Skip-link: первый элемент фокуса на странице */
+      .skip-link {
+        position: absolute;
+        left: 16px;
+        top: -100px;
+        background: var(--brand);
+        color: #fff;
+        padding: 12px 20px;
+        border-radius: 8px;
+        z-index: 100;
+        text-decoration: none;
+        transition: top 0.15s;
+      }
+      .skip-link:focus {
+        top: 12px;
+      }
+
+      .header {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        height: var(--header-h);
+        display: flex;
+        align-items: center;
+        background: var(--paper);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+      }
+      .header__inner {
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 16px;
+        display: flex;
+        align-items: center;
+        gap: 24px;
+      }
+
+      /* Логотип: картинка + текст, чтобы название читалось скринридером */
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-height: 44px;
+        text-decoration: none;
+      }
+      .logo__img {
+        width: 44px;
+        height: 44px;
+      }
+      .logo__name {
+        font-size: 17px;
+        font-weight: 700;
+        color: var(--brand);
+      }
+
+      /* Навигация текстом, активный пункт — подчёркивание 3px */
+      .nav {
+        display: flex;
+        gap: 8px;
+      }
+      .nav__link {
+        position: relative;
+        display: flex;
+        align-items: center;
+        min-height: 44px;
+        padding: 0 14px;
+        font-size: 16px;
+        font-weight: 500;
+        color: var(--ink);
+        text-decoration: none;
+        border-radius: 8px;
+      }
+      .nav__link::after {
+        content: "";
+        position: absolute;
+        left: 14px;
+        right: 14px;
+        bottom: 8px;
+        height: 3px;
+        border-radius: 2px;
+        background: var(--brand);
+        transform: scaleX(0);
+        transform-origin: center;
+        transition: transform 0.15s;
+      }
+      .nav__link:hover {
+        color: var(--brand);
+      }
+      .nav__link:hover::after {
+        transform: scaleX(0.4);
+      }
+      .nav__link[aria-current="page"] {
+        color: var(--brand);
+        font-weight: 600;
+      }
+      .nav__link[aria-current="page"]::after {
+        transform: scaleX(1);
+      }
+
+      /* Действия справа: иконки 44×44 */
+      .actions {
+        margin-left: auto;
+        display: flex;
+        gap: 6px;
+      }
+      .icon-btn {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        border: 0;
+        border-radius: 10px;
+        cursor: pointer;
+        background: transparent;
+        color: var(--brand);
+      }
+      .icon-btn:hover {
+        background: rgba(0, 52, 102, 0.08);
+      }
+      .badge {
+        position: absolute;
+        top: 4px;
+        right: 2px;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 5px;
+        border-radius: 9px;
+        background: var(--accent);
+        color: var(--ink); /* зелёный только с чёрным текстом */
+        font-size: 11px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      svg {
+        width: 22px;
+        height: 22px;
+      }
+
+      /* Единый видимый фокус для всех интерактивных элементов */
+      .logo:focus-visible,
+      .nav__link:focus-visible,
+      .icon-btn:focus-visible {
+        outline: 2px solid var(--brand);
+        outline-offset: 2px;
+      }
+
+      .burger {
+        display: none;
+      }
+
+      /* Мобильная версия */
+      .mobile-menu {
+        display: none;
+        position: sticky;
+        top: var(--header-h);
+        z-index: 49;
+        background: var(--paper);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        padding: 8px 16px 16px;
+      }
+      .mobile-menu.is-open {
+        display: block;
+      }
+      .mobile-menu .nav {
+        flex-direction: column;
+        gap: 0;
+      }
+      .mobile-menu .nav__link {
+        padding: 12px 8px;
+        font-size: 17px;
+      }
+
+      @media (max-width: 767px) {
+        .nav {
+          display: none;
+        }
+        .burger {
+          display: flex;
+        }
+        .logo__name {
+          display: none;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Перейти к содержимому</a>
+
+    <header class="header">
+      <div class="header__inner">
+        <a class="logo" href="/" aria-label="Федерация — на главную">
+          <img class="logo__img" src="logo.png" alt="" width="44" height="44" />
+          <span class="logo__name">Федерация</span>
+        </a>
+
+        <nav class="nav" aria-label="Основная навигация">
+          <a class="nav__link" href="/" aria-current="page">Главная</a>
+          <a class="nav__link" href="/events">Мероприятия</a>
+          <a class="nav__link" href="/shop">Магазин</a>
+        </nav>
+
+        <div class="actions">
+          <button class="icon-btn" type="button" aria-label="Избранное">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path
+                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+              />
+            </svg>
+          </button>
+
+          <button class="icon-btn" type="button" aria-label="Корзина, 3 товара">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="9" cy="21" r="1" />
+              <circle cx="20" cy="21" r="1" />
+              <path
+                d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"
+              />
+            </svg>
+            <span class="badge" aria-hidden="true">3</span>
+          </button>
+
+          <button class="icon-btn" type="button" aria-label="Выйти">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </button>
+
+          <button
+            class="icon-btn burger"
+            type="button"
+            aria-label="Открыть меню"
+            aria-expanded="false"
+            aria-controls="mobile-menu"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              aria-hidden="true"
+            >
+              <line x1="4" y1="7" x2="20" y2="7" />
+              <line x1="4" y1="12" x2="20" y2="12" />
+              <line x1="4" y1="17" x2="20" y2="17" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <nav class="mobile-menu" id="mobile-menu" aria-label="Мобильная навигация">
+      <div class="nav">
+        <a class="nav__link" href="/" aria-current="page">Главная</a>
+        <a class="nav__link" href="/events">Мероприятия</a>
+        <a class="nav__link" href="/shop">Магазин</a>
+      </div>
+    </nav>
+
+    <main id="main">
+      <!-- контент страницы -->
+    </main>
+
+    <script>
+      const burger = document.querySelector(".burger");
+      const menu = document.getElementById("mobile-menu");
+      burger.addEventListener("click", () => {
+        const open = menu.classList.toggle("is-open");
+        burger.setAttribute("aria-expanded", open);
+        burger.setAttribute(
+          "aria-label",
+          open ? "Закрыть меню" : "Открыть меню",
+        );
+      });
+    </script>
+  </body>
+</html>
