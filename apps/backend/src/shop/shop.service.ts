@@ -7,6 +7,15 @@ import {
 import { OrderMapper } from "./order-mapper";
 import { CreateOrderDto } from "./dto/create-order.dto";
 
+interface OrderItemSnapshot {
+  productId: number;
+  name: string;
+  image: string;
+  points: number;
+  quantity: number;
+  linePoints: number;
+}
+
 @Injectable()
 export class ShopService {
   constructor(
@@ -23,29 +32,40 @@ export class ShopService {
   }
 
   async createOrder(userId: number, dto: CreateOrderDto) {
-    // 1. Собираем снапшоты всех позиций из каталога
-    const snapshots = await Promise.all(
-      dto.items.map(async (i) => {
-        const product = await this.prisma.shopItem.findUnique({
-          where: { id: i.itemId },
-        });
-        if (!product) {
-          throw new NotFoundException(`Товар ${i.itemId} не найден`);
-        }
-        return {
-          productId: product.id,
-          name: product.name,
-          image: product.image ?? "/img/placeholder.webp", // ← fallback для null
-          points: product.points,
-          quantity: i.quantity,
-          linePoints: product.points * i.quantity,
-        };
-      }),
-    );
+    // 1. Склеиваем дубликаты: [{productId:1,qty:1},{productId:1,qty:2}] → {1: 3}
+    const merged = new Map<number, number>();
+    for (const item of dto.items) {
+      merged.set(
+        item.productId,
+        (merged.get(item.productId) ?? 0) + item.quantity,
+      );
+    }
 
-    const totalPoints = snapshots.reduce((s, i) => s + i.linePoints, 0);
+    // 2. Снапшоты по актуальным ценам каталога. Сумму считает ТОЛЬКО сервер:
+    // клиент присылает только { productId, quantity }.
+    const snapshots: OrderItemSnapshot[] = [];
+    let totalPoints = 0;
 
-    // 2. Транзакция: создать заказ + списать баллы + запись в историю
+    for (const [productId, quantity] of merged) {
+      const product = await this.prisma.shopItem.findUnique({
+        where: { id: productId },
+      });
+      if (!product) {
+        throw new NotFoundException(`Товар #${productId} не найден`);
+      }
+      const linePoints = product.points * quantity;
+      totalPoints += linePoints;
+      snapshots.push({
+        productId: product.id,
+        name: product.name,
+        image: product.image ?? "", // пустая строка — фронт покажет заглушку
+        points: product.points,
+        quantity,
+        linePoints,
+      });
+    }
+
+    // 3. Транзакция: создать заказ + списать баллы + запись в историю
     const order = await this.prisma.$transaction(async (tx) => {
       const user = await tx.user.findUnique({ where: { id: userId } });
       if (!user || user.totalPoints < totalPoints) {
@@ -72,8 +92,9 @@ export class ShopService {
       await tx.pointsHistory.create({
         data: {
           userId,
-          points: -totalPoints, // ← было amount, стало points
-          reason: `Заказ №${created.id}`,
+          points: -totalPoints,
+          // «Покупка: …» — фронт истории определяет по этому слову тип «Покупка в магазине»
+          reason: `Покупка: ${snapshots.map((s) => s.name).join(", ")}`,
         },
       });
 

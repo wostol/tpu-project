@@ -206,23 +206,44 @@ const Header = () => {
     ].filter((g) => Boolean(g.list && g.indicator));
 
     // Синхронизация индикатора с активным Pill в каждой группе
-    const sync = () => {
+    const sync = (animate = true) => {
       groups.forEach(({ list, indicator }) => {
         const active = list.querySelector(".pill.is-active");
+        // Индикатор лежит внутри <ul>, поэтому offsetLeft/offsetWidth —
+        // координаты pill относительно этого же <ul>. Это корректно только
+        // когда у <ul> есть собственный слой позиционирования (position:relative).
+        // Если по какой-то причине relative потерян (конфликт CSS), offsetLeft
+        // считается от другого предка и плашка «улетает» в середину экрана —
+        // подстраховываемся через getBoundingClientRect.
+        const positioned = window.getComputedStyle(list).position !== "static";
+        let x = 0;
+        let w = 0;
+        if (active) {
+          if (positioned) {
+            x = active.offsetLeft;
+            w = active.offsetWidth;
+          } else {
+            const rA = active.getBoundingClientRect();
+            const rL = list.getBoundingClientRect();
+            x = rA.left - rL.left + list.scrollLeft;
+            w = rA.width;
+          }
+        }
+        const dur = animate && !reducedMotion ? 0.45 : 0;
         if (!active) {
           // Явно скрываем индикатор, если в группе нет активного пункта
           gsap.to(indicator, {
             opacity: 0,
-            duration: reducedMotion ? 0 : 0.2,
+            duration: animate && !reducedMotion ? 0.2 : 0,
             ease: "power2.out",
           });
           return;
         }
         gsap.to(indicator, {
-          x: active.offsetLeft,
-          width: active.offsetWidth,
+          x,
+          width: w,
           opacity: 1,
-          duration: reducedMotion ? 0 : 0.45,
+          duration: dur,
           ease: "power3.inOut",
         });
       });
@@ -254,12 +275,27 @@ const Header = () => {
     sync();
   }, [location.pathname, isMobile, loading, isAuthenticated, reducedMotion]);
 
-  /* ---------- ресайз ---------- */
+  /* ---------- ресайз: мгновенная переброска индикатора без анимации ---------- */
   useEffect(() => {
     if (isMobile || loading) return;
     const nav = navRef.current;
     if (!nav) return;
-    const onResize = () => syncRef.current?.();
+
+    let raf = 0;
+    let lastW = window.innerWidth;
+
+    // При смене размера окна анимируем position/width сразу, иначе
+    // ResizeObserver + GSAP tween дают «прыжок» плашки в центр экрана.
+    const onResize = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        const instant = Math.abs(window.innerWidth - lastW) > 2;
+        lastW = window.innerWidth;
+        syncRef.current?.(!instant);
+      });
+    };
+
     const ro = new ResizeObserver(onResize);
     ro.observe(nav);
     window.addEventListener("resize", onResize);
@@ -267,6 +303,7 @@ const Header = () => {
     return () => {
       ro.disconnect();
       window.removeEventListener("resize", onResize);
+      if (raf) cancelAnimationFrame(raf);
     };
   }, [isMobile, loading]);
 

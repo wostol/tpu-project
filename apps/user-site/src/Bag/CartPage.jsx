@@ -1,11 +1,18 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import styles from "./CartPage.module.css";
 import useAuth from "../auth/useAuth";
-import { useProfile } from "../Profile/useProfile"; // ← новый импорт
+import { useProfile } from "../Profile/useProfile";
 import { CartSkeleton } from "../component/Skeleton";
+import SafeImage from "../component/SafeImage";
 import { apiRequest } from "../auth/apiClient";
+import { imageUrl } from "../config";
 import ConfirmDialog from "../component/ConfirmDialog";
+import {
+  useCartStore,
+  migrateLegacyCart,
+  cartTotalCount,
+} from "../Shop/cartStore";
 
 // Компонент уведомления
 const Notification = ({ notification, onClose }) => {
@@ -65,8 +72,15 @@ const Notification = ({ notification, onClose }) => {
 };
 
 function CartPage() {
-  const [cartItems, setCartItems] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // Корзина — единый zustand-стор (localStorage: "sportclub-cart").
+  // Хранятся только { productId, quantity }; названия/цены — из каталога.
+  const cartItems = useCartStore((s) => s.items);
+  const setQuantity = useCartStore((s) => s.setQuantity);
+  const removeItem = useCartStore((s) => s.remove);
+  const clearCart = useCartStore((s) => s.clear);
+
+  const [products, setProducts] = useState([]);
+  const [productsStatus, setProductsStatus] = useState("loading");
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [deleteDialog, setDeleteDialog] = useState({
@@ -78,32 +92,35 @@ function CartPage() {
     totalPointsCost: 0,
     remainingPoints: 0,
   });
-  const { isAuthenticated } = useAuth(); // auth — только для проверки «залогинен ли»
-  const { profile, refresh: refreshProfile } = useProfile(); // ← баланс теперь отсюда
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+  const { profile, refresh: refreshProfile } = useProfile();
 
   const userPoints = isAuthenticated ? (profile?.totalPoints ?? 0) : 0;
+
+  // Загружаем каталог: корзина хранит только id, данные товара берём отсюда
   useEffect(() => {
-    const loadCartFromStorage = () => {
+    migrateLegacyCart(); // перенос старой корзины (ключ "cart"), после — удаление старого ключа
+
+    const loadProducts = async () => {
+      setProductsStatus("loading");
       try {
-        const savedCart = JSON.parse(localStorage.getItem("cart") || "[]");
-        setCartItems(savedCart);
-        updateHeaderBadge(
-          savedCart.reduce((sum, item) => sum + (item.quantity || 1), 0),
-        );
+        const data = await apiRequest("/shop");
+        setProducts(Array.isArray(data) ? data : []);
+        setProductsStatus("ready");
       } catch (error) {
-        console.error("Ошибка загрузки корзины:", error);
-        setCartItems([]);
-      } finally {
-        setLoading(false);
+        console.error("Ошибка загрузки каталога:", error);
+        setProductsStatus("error");
       }
     };
 
-    loadCartFromStorage();
+    loadProducts();
   }, []);
 
-  const updateHeaderBadge = (count) => {
-    const badges = document.querySelectorAll(".cart-badge");
-    badges.forEach((badge) => {
+  // Бейдж корзины в шапке — из стора
+  useEffect(() => {
+    const count = cartTotalCount(cartItems);
+    document.querySelectorAll(".cart-badge").forEach((badge) => {
       if (count > 0) {
         badge.textContent = count > 99 ? "99+" : count;
         badge.style.display = "flex";
@@ -111,7 +128,7 @@ function CartPage() {
         badge.style.display = "none";
       }
     });
-  };
+  }, [cartItems]);
 
   const addNotification = (title, message) => {
     const id = Date.now() + Math.random();
@@ -122,59 +139,47 @@ function CartPage() {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
   };
 
-  const handleDecreaseQuantity = (uuid) => {
-    setCartItems((prevItems) => {
-      const item = prevItems.find((i) => i.uuid === uuid);
-      if (!item) return prevItems;
-      const currentQty = item.quantity || 1;
-      if (currentQty <= 1) {
-        setDeleteDialog({ isOpen: true, itemId: uuid });
-        return prevItems;
-      }
-      const newItems = prevItems.map((i) =>
-        i.uuid === uuid ? { ...i, quantity: currentQty - 1 } : i,
-      );
-      localStorage.setItem("cart", JSON.stringify(newItems));
-      const totalItems = newItems.reduce(
-        (sum, i) => sum + (i.quantity || 1),
-        0,
-      );
-      updateHeaderBadge(totalItems);
-      return newItems;
-    });
+  // Строки корзины = позиции стора + данные товара из каталога
+  const rows = useMemo(
+    () =>
+      cartItems.map((ci) => ({
+        ...ci,
+        product: products.find((p) => p.id === ci.productId) ?? null,
+      })),
+    [cartItems, products],
+  );
+
+  // Сумма считается по АКТУАЛЬНЫМ ценам каталога, а не по данным из localStorage
+  const totalPointsCost = rows.reduce(
+    (sum, r) => sum + (r.product ? r.product.points * r.quantity : 0),
+    0,
+  );
+  const unavailableCount = rows.filter((r) => !r.product).length;
+  const canAfford =
+    isAuthenticated &&
+    rows.length > 0 &&
+    unavailableCount === 0 &&
+    userPoints >= totalPointsCost;
+
+  const handleDecreaseQuantity = (productId) => {
+    const row = cartItems.find((i) => i.productId === productId);
+    if (!row) return;
+    if (row.quantity <= 1) {
+      setDeleteDialog({ isOpen: true, itemId: productId });
+      return;
+    }
+    setQuantity(productId, row.quantity - 1);
   };
 
-  const handleIncreaseQuantity = (uuid) => {
-    setCartItems((prevItems) => {
-      const newItems = prevItems.map((item) =>
-        item.uuid === uuid
-          ? { ...item, quantity: (item.quantity || 1) + 1 }
-          : item,
-      );
-      localStorage.setItem("cart", JSON.stringify(newItems));
-      const totalItems = newItems.reduce(
-        (sum, item) => sum + (item.quantity || 1),
-        0,
-      );
-      updateHeaderBadge(totalItems);
-      return newItems;
-    });
+  const handleIncreaseQuantity = (productId) => {
+    const row = cartItems.find((i) => i.productId === productId);
+    if (!row) return;
+    setQuantity(productId, row.quantity + 1);
   };
 
   const confirmDeleteItem = () => {
-    if (deleteDialog.itemId) {
-      setCartItems((prevItems) => {
-        const newItems = prevItems.filter(
-          (item) => item.uuid !== deleteDialog.itemId,
-        );
-        localStorage.setItem("cart", JSON.stringify(newItems));
-        const totalItems = newItems.reduce(
-          (sum, item) => sum + (item.quantity || 1),
-          0,
-        );
-        updateHeaderBadge(totalItems);
-        return newItems;
-      });
+    if (deleteDialog.itemId !== null) {
+      removeItem(deleteDialog.itemId);
     }
     setDeleteDialog({ isOpen: false, itemId: null });
   };
@@ -183,21 +188,8 @@ function CartPage() {
     setDeleteDialog({ isOpen: false, itemId: null });
   };
 
-  const removeItem = (uuid) => {
-    setCartItems((prevItems) => {
-      const newItems = prevItems.filter((item) => item.uuid !== uuid);
-      localStorage.setItem("cart", JSON.stringify(newItems));
-      const totalItems = newItems.reduce(
-        (sum, item) => sum + (item.quantity || 1),
-        0,
-      );
-      updateHeaderBadge(totalItems);
-      return newItems;
-    });
-  };
-
-  const handleCheckout = async () => {
-    if (cartItems.length === 0) {
+  const handleCheckout = () => {
+    if (rows.length === 0) {
       alert("Корзина пуста");
       return;
     }
@@ -207,10 +199,12 @@ function CartPage() {
       return;
     }
 
-    const totalPointsCost = cartItems.reduce(
-      (sum, item) => sum + (item.points || 0) * (item.quantity || 1),
-      0,
-    );
+    if (unavailableCount > 0) {
+      alert(
+        "Часть товаров больше недоступна в каталоге. Удалите их из корзины.",
+      );
+      return;
+    }
 
     if (userPoints < totalPointsCost) {
       const missingPoints = totalPointsCost - userPoints;
@@ -219,6 +213,7 @@ function CartPage() {
       );
       return;
     }
+
     setCheckoutDialog({
       isOpen: true,
       totalPointsCost,
@@ -235,43 +230,32 @@ function CartPage() {
     });
 
     try {
-      // 🔹 Проверка: не пустая ли корзина
-      if (!cartItems || cartItems.length === 0) {
+      // Контракт бэкенда: только id и количество. Сумму и списание делает сервер.
+      const items = cartItems.map((i) => ({
+        productId: i.productId,
+        quantity: i.quantity,
+      }));
+      if (items.length === 0) {
         throw new Error("Корзина пуста");
       }
 
-      // 🔹 Формируем items в ПРАВИЛЬНОМ формате: [{ item: "uuid", count: N }]
-      const items = cartItems.map((cartItem) => ({
-        item: cartItem.uuid || cartItem.id, // 🔥 Ключ 'item', значение — строка UUID
-        count: cartItem.count || cartItem.quantity || 1, // 🔥 Положительное число
-      }));
-
-      // 🔹 Валидация: count должен быть > 0
-      const invalidItems = items.filter((i) => !i.item || i.count <= 0);
-      if (invalidItems.length > 0) {
-        throw new Error("Некорректные данные в корзине");
-      }
-
-      // 🔹 Логируем для отладки
-      console.log("[Checkout] Sending payload:", { items });
-
-      await apiRequest("/shop/orders", {
+      const order = await apiRequest("/shop/checkout", {
         method: "POST",
-        body: JSON.stringify({ items }), // 🔥 Отправляем { items: [...] }
+        body: JSON.stringify({ items }),
       });
 
-      // ✅ Очищаем корзину после успешного заказа
-      setCartItems([]);
-      localStorage.setItem("cart", "[]");
-      updateHeaderBadge(0);
+      // Успех: чистим корзину и перечитываем баланс из БД
+      clearCart();
+      await refreshProfile();
 
-      addNotification(
-        "Заказ оформлен!",
-        "Ваш заказ успешно оформлен и будет обработан в ближайшее время.",
-      );
+      // Переходим на страницу оформленного заказа
+      navigate(`/profile/orders/${order.id}`);
     } catch (error) {
-      console.error("❌ Ошибка при оформлении заказа:", error);
-      alert(`Ошибка при оформлении заказа: ${error.message}`);
+      console.error("Ошибка при оформлении заказа:", error);
+      addNotification(
+        "Ошибка оформления",
+        error.message || "Попробуйте ещё раз",
+      );
     } finally {
       setCheckoutLoading(false);
     }
@@ -284,13 +268,8 @@ function CartPage() {
       remainingPoints: 0,
     });
   };
-  const totalPointsCost = cartItems.reduce(
-    (sum, item) => sum + (item.points || 0) * (item.quantity || 1),
-    0,
-  );
-  const canAfford = userPoints >= totalPointsCost;
 
-  if (loading) {
+  if (productsStatus === "loading") {
     return <CartSkeleton />;
   }
 
@@ -311,13 +290,18 @@ function CartPage() {
         </div>
       </div>
 
-      {cartItems.length === 0 ? (
+      {rows.length === 0 ? (
         <div className={styles.cartEmpty}>
           <svg width="64" height="64" viewBox="0 0 24 24" fill="currentColor">
             <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z" />
           </svg>
           <h3>Корзина пуста</h3>
           <p>Добавьте товары из магазина, чтобы они появились здесь</p>
+          {productsStatus === "error" && (
+            <p style={{ color: "#dc3545", marginTop: 8 }}>
+              Каталог не загрузился — проверьте, что работает бэкенд
+            </p>
+          )}
           <Link to="/shop" className={styles.continueShopping}>
             Перейти в магазин
           </Link>
@@ -325,75 +309,88 @@ function CartPage() {
       ) : (
         <div className={styles.cartContainer}>
           <div className={styles.cartItems}>
-            <h2>
-              Товары (
-              {cartItems.reduce((sum, item) => sum + (item.quantity || 1), 0)}{" "}
-              шт.)
-            </h2>
-            {cartItems.map((item) => (
-              <div key={item.uuid} className={styles.cartItem}>
-                <div className={styles.cartItemImage}>
-                  {item.image ? (
-                    <img src={item.image} alt={item.name || item.title} />
-                  ) : (
-                    <div className={styles.imagePlaceholder}></div>
-                  )}
-                </div>
-                <div className={styles.cartItemDetails}>
-                  <h3 className={styles.cartItemTitle}>
-                    {item.name || item.title}
-                  </h3>
-                  <p className={styles.cartItemDescription}>
-                    {item.description}
-                  </p>
-                  <div className={styles.cartItemInfo}>
-                    <div className={styles.cartItemPrice}>
-                      <span className={styles.pointsPrice}>
-                        {item.points || 0} баллов
-                      </span>
-                      {item.price && (
-                        <span className={styles.originalPrice}>
-                          {item.price}₽
+            <h2>Товары ({cartTotalCount(cartItems)} шт.)</h2>
+            {rows.map((row) =>
+              row.product ? (
+                <div key={row.productId} className={styles.cartItem}>
+                  <div className={styles.cartItemImage}>
+                    <SafeImage
+                      src={imageUrl(row.product.image)}
+                      alt={row.product.name}
+                    />
+                  </div>
+                  <div className={styles.cartItemDetails}>
+                    <h3 className={styles.cartItemTitle}>{row.product.name}</h3>
+                    <p className={styles.cartItemDescription}>
+                      {row.product.description}
+                    </p>
+                    <div className={styles.cartItemInfo}>
+                      <div className={styles.cartItemPrice}>
+                        <span className={styles.pointsPrice}>
+                          {row.product.points || 0} баллов
                         </span>
-                      )}
-                    </div>
-                    {item.givesPoints && (
-                      <div className={styles.cartItemGivesPoints}>
-                        +{item.givesPoints} баллов за покупку
+                        {row.product.price && (
+                          <span className={styles.originalPrice}>
+                            {row.product.price}₽
+                          </span>
+                        )}
                       </div>
-                    )}
+                    </div>
+                  </div>
+                  <div className={styles.cartItemActions}>
+                    <div className={styles.cartQuantity}>
+                      <button
+                        className={styles.quantityBtn}
+                        onClick={() => handleDecreaseQuantity(row.productId)}
+                      >
+                        -
+                      </button>
+                      <span className={styles.quantityValue}>
+                        {row.quantity}
+                      </span>
+                      <button
+                        className={styles.quantityBtn}
+                        onClick={() => handleIncreaseQuantity(row.productId)}
+                      >
+                        +
+                      </button>
+                    </div>
+                    <div className={styles.cartItemTotal}>
+                      {(row.product.points || 0) * row.quantity} баллов
+                    </div>
+                    <button
+                      className={styles.removeBtn}
+                      onClick={() => removeItem(row.productId)}
+                    >
+                      Удалить
+                    </button>
                   </div>
                 </div>
-                <div className={styles.cartItemActions}>
-                  <div className={styles.cartQuantity}>
+              ) : (
+                // Товар удалили из каталога, пока лежал в корзине
+                <div key={row.productId} className={styles.cartItem}>
+                  <div className={styles.cartItemImage}>
+                    <div className={styles.imagePlaceholder}></div>
+                  </div>
+                  <div className={styles.cartItemDetails}>
+                    <h3 className={styles.cartItemTitle}>
+                      Товар недоступен (№{row.productId})
+                    </h3>
+                    <p className={styles.cartItemDescription}>
+                      Этого товара больше нет в каталоге
+                    </p>
+                  </div>
+                  <div className={styles.cartItemActions}>
                     <button
-                      className={styles.quantityBtn}
-                      onClick={() => handleDecreaseQuantity(item.uuid)}
+                      className={styles.removeBtn}
+                      onClick={() => removeItem(row.productId)}
                     >
-                      -
-                    </button>
-                    <span className={styles.quantityValue}>
-                      {item.quantity || 1}
-                    </span>
-                    <button
-                      className={styles.quantityBtn}
-                      onClick={() => handleIncreaseQuantity(item.uuid)}
-                    >
-                      +
+                      Удалить
                     </button>
                   </div>
-                  <div className={styles.cartItemTotal}>
-                    {(item.points || 0) * (item.quantity || 1)} баллов
-                  </div>
-                  <button
-                    className={styles.removeBtn}
-                    onClick={() => removeItem(item.uuid)}
-                  >
-                    Удалить
-                  </button>
                 </div>
-              </div>
-            ))}
+              ),
+            )}
           </div>
 
           <div className={styles.cartSummary}>
@@ -401,9 +398,7 @@ function CartPage() {
 
             <div className={styles.cartSummaryItem}>
               <span className={styles.summaryLabel}>
-                Товары (
-                {cartItems.reduce((sum, item) => sum + (item.quantity || 1), 0)}{" "}
-                шт.)
+                Товары ({cartTotalCount(cartItems)} шт.)
               </span>
               <span className={styles.summaryValue}>
                 {totalPointsCost} баллов
@@ -433,9 +428,17 @@ function CartPage() {
 
             {!canAfford && (
               <div className={`${styles.cartSummaryItem} ${styles.error}`}>
-                <span className={styles.summaryLabel}>Недостаточно баллов</span>
+                <span className={styles.summaryLabel}>
+                  {!isAuthenticated
+                    ? "Требуется авторизация"
+                    : unavailableCount > 0
+                      ? "Есть недоступные товары"
+                      : "Недостаточно баллов"}
+                </span>
                 <span className={styles.summaryValue}>
-                  Не хватает: {totalPointsCost - userPoints} баллов
+                  {isAuthenticated && unavailableCount === 0
+                    ? `Не хватает: ${totalPointsCost - userPoints} баллов`
+                    : "—"}
                 </span>
               </div>
             )}

@@ -7,8 +7,8 @@
   --brand-green: #28be46;
   --badge-bg: #0e7a2a;
   /* п.3: шапка прозрачная — контент просвечивает */
-  --header-bg: rgba(255, 255, 255, 0.45);
-  --header-bg-scrolled: rgba(255, 255, 255, 0.7);
+  --header-bg: rgba(255, 255, 255, 0.25);
+  --header-bg-scrolled: rgba(255, 255, 255, 0.45);
   --pill-hover-bg: rgba(0, 52, 102, 0.07);
   --pill-active-text: #fff;
 }
@@ -132,7 +132,7 @@ html {
 }
 
 .nav-group {
-  position: relative;
+  position: relative !important; /* защита от `position: static !important` в других CSS */
   display: flex;
   align-items: center;
   gap: 4px;
@@ -166,6 +166,17 @@ html {
   will-change: transform, width, opacity;
   list-style: none; /* убираем маркер списка */
   display: block; /* не участвует в flex как list-item */
+  /* п.3: фон шапки полупрозрачный — добавляем тень, чтобы плашка
+     читалась на любом фоне под шапкой */
+  box-shadow: 0 2px 10px rgba(0, 26, 51, 0.28);
+}
+
+/* Подписи pill и текст бренда должны читаться сквозь прозрачную шапку
+   на любом фоне страницы (текстовые тени не наследуются) */
+.pill__label,
+.brand__title,
+.brand__subtitle {
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.75);
 }
 
 /* ---------- Pill ---------- */

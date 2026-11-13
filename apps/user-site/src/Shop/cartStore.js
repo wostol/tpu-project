@@ -44,3 +44,25 @@ export const useCartStore = create(
 
 export const cartTotalCount = (items) =>
   items.reduce((sum, i) => sum + i.quantity, 0);
+
+// Разовая миграция старой корзины (ключ "cart" из ранней версии с мок-данными,
+// формат [{uuid, id, name, ...}]) в этот стор. Позиции без числового id
+// отбрасываются. После вызова старый ключ удаляется.
+export const migrateLegacyCart = () => {
+  try {
+    const legacy = JSON.parse(localStorage.getItem("cart") || "[]");
+    if (Array.isArray(legacy)) {
+      legacy.forEach((item) => {
+        const productId = Number(item.productId ?? item.id);
+        if (Number.isInteger(productId) && productId > 0) {
+          useCartStore
+            .getState()
+            .add(productId, Math.max(1, item.quantity || 1));
+        }
+      });
+    }
+  } catch {
+    // повреждённый JSON — просто забываем старую корзину
+  }
+  localStorage.removeItem("cart");
+};

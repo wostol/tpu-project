@@ -10,14 +10,6 @@ import {
 /** Одна позиция заказа: какой товар и сколько штук. */
 export class OrderItemInputDto {
   @IsInt()
-  itemId!: number; // ← добавлен !
-
-  @IsInt()
-  @Min(1)
-  quantity!: number; // ← добавлен !
-}
-export class CheckoutItemDto {
-  @IsInt()
   productId!: number;
 
   @IsInt()
@@ -25,11 +17,11 @@ export class CheckoutItemDto {
   quantity!: number;
 }
 
-/** Тело POST /api/shop/orders */
+/** Тело POST /api/shop/checkout */
 export class CreateOrderDto {
   @IsArray()
   @ArrayNotEmpty()
   @ValidateNested({ each: true })
   @Type(() => OrderItemInputDto)
-  items!: OrderItemInputDto[]; // ← добавлен !
+  items!: OrderItemInputDto[];
 }

@@ -15,9 +15,10 @@ import { CreateOrderDto } from "./dto/create-order.dto";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { Public } from "../common/decorators/public.decorator";
-import type { AuthUser } from "../common/interfaces/auth-user.interface";
 
 @ApiTags("shop")
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller("shop")
 export class ShopController {
   constructor(private shopService: ShopService) {}
@@ -35,13 +36,10 @@ export class ShopController {
     return this.shopService.getById(id);
   }
 
-  @Post("orders")
-  @HttpCode(HttpStatus.CREATED)
-  createOrder(@CurrentUser() user: AuthUser, @Body() dto: CreateOrderDto) {
-    return this.shopService.createOrder(user.id, dto);
-  }
+  /** Единственный эндпоинт оформления заказа. */
   @Post("checkout")
-  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: "Оформление заказа со списанием баллов" })
   checkout(@CurrentUser("id") userId: number, @Body() dto: CreateOrderDto) {
     return this.shopService.createOrder(userId, dto);
   }

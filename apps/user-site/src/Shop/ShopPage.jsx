@@ -4,7 +4,7 @@ import { ShopSkeleton } from "../component/Skeleton";
 import SafeImage from "../component/SafeImage";
 import { apiRequest } from "../auth/apiClient";
 import { imageUrl } from "../config";
-import { useCartStore } from "./cartStore";
+import { useCartStore, migrateLegacyCart, cartTotalCount } from "./cartStore";
 
 // ─── Уведомление (без изменений) ───
 const Notification = ({ notification, onClose }) => {
@@ -69,6 +69,15 @@ const ShopPage = () => {
   const [status, setStatus] = useState("loading");
   const [notifications, setNotifications] = useState([]);
 
+  // Корзина — единый zustand-стор (localStorage: "sportclub-cart")
+  const cartItems = useCartStore((s) => s.items);
+  const addToCart = useCartStore((s) => s.add);
+
+  // Бейдж корзины в шапке — из стора
+  useEffect(() => {
+    updateHeaderBadge(cartTotalCount(cartItems));
+  }, [cartItems]);
+
   const loadProducts = useCallback(async () => {
     setStatus("loading");
     try {
@@ -82,18 +91,9 @@ const ShopPage = () => {
   }, []);
 
   useEffect(() => {
+    migrateLegacyCart(); // перенос старой корзины (ключ "cart"), после — удаление старого ключа
     loadProducts();
-    updateCartCount();
   }, [loadProducts]);
-
-  const updateCartCount = () => {
-    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-    const totalItems = cart.reduce(
-      (sum, item) => sum + (item.quantity || 1),
-      0,
-    );
-    updateHeaderBadge(totalItems);
-  };
 
   const updateHeaderBadge = (count) => {
     document.querySelectorAll(".cart-badge").forEach((badge) => {
@@ -115,22 +115,11 @@ const ShopPage = () => {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
   };
 
-  // const addToCart = (product) => {
-  //   const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-  //   const existingItem = cart.find((item) => item.uuid === product.uuid);
-  //   if (existingItem) {
-  //     existingItem.quantity = (existingItem.quantity || 1) + 1;
-  //   } else {
-  //     cart.push({ ...product, quantity: 1 });
-  //   }
-  //   localStorage.setItem("cart", JSON.stringify(cart));
-  //   updateCartCount();
-  //   addNotification(
-  //     "Товар добавлен!",
-  //     `${product.name} успешно добавлен в корзину`,
-  //   );
-  // };
-  const addToCart = useCartStore((s) => s.add);
+  const handleAddToCart = (product) => {
+    addToCart(product.id);
+    addNotification("Товар добавлен!", `${product.name} добавлен в корзину`);
+  };
+
   // СКЕЛЕТОН ТОЛЬКО ПО ДАННЫМ — никаких картинок в условии
   if (status === "loading") {
     return <ShopSkeleton count={3} />;
@@ -193,7 +182,7 @@ const ShopPage = () => {
                     </div>
                     <button
                       className={styles.addToCartBtn}
-                      onClick={() => addToCart(product.id)}
+                      onClick={() => handleAddToCart(product)}
                     >
                       <span>+</span> В корзину
                     </button>
