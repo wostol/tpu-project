@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 import styles from "./CartPage.module.css";
 import useAuth from "../auth/useAuth";
 import { useProfile } from "../Profile/useProfile";
@@ -83,6 +84,7 @@ function CartPage() {
   const [productsStatus, setProductsStatus] = useState("loading");
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [itemsListRef] = useAutoAnimate();
   const [deleteDialog, setDeleteDialog] = useState({
     isOpen: false,
     itemId: null,
@@ -308,7 +310,7 @@ function CartPage() {
         </div>
       ) : (
         <div className={styles.cartContainer}>
-          <div className={styles.cartItems}>
+          <div className={styles.cartItems} ref={itemsListRef}>
             <h2>Товары ({cartTotalCount(cartItems)} шт.)</h2>
             {rows.map((row) =>
               row.product ? (

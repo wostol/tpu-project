@@ -1,19 +1,24 @@
-import React from 'react';
-import styles from './ProfileTabs.module.css';
+import React from "react";
+import styles from "./ProfileTabs.module.css";
 
-const AchievementsTab = ({ achievementsData, allLevels, totalPoints, currentLevel }) => {
+const AchievementsTab = ({
+  achievementsData,
+  allLevels,
+  totalPoints,
+  currentLevel,
+}) => {
   // Определяем статус для каждого уровня
   const getLevelStatus = (levelMinPoints) => {
     if (totalPoints >= levelMinPoints) {
-      return 'completed';
+      return "completed";
     }
-    return 'locked';
+    return "locked";
   };
 
   // Находим следующий уровень
   const getNextLevelMinPoints = () => {
-    const nextLevel = allLevels.find(level => level.min_points > totalPoints);
-    return nextLevel ? nextLevel.min_points : totalPoints + 100;
+    const nextLevel = allLevels.find((level) => level.minPoints > totalPoints);
+    return nextLevel ? nextLevel.minPoints : totalPoints + 100;
   };
 
   return (
@@ -22,15 +27,16 @@ const AchievementsTab = ({ achievementsData, allLevels, totalPoints, currentLeve
       <div className={styles.levelsSection}>
         <h3 className={styles.levelsTitle}>Все уровни</h3>
         <div className={styles.levelsList}>
-          {allLevels.map(level => {
-            const status = getLevelStatus(level.min_points);
+          {allLevels.map((level) => {
+            const status = getLevelStatus(level.minPoints);
             const isCurrent = currentLevel?.id === level.id;
-            const pointsNeeded = level.min_points > totalPoints ? level.min_points - totalPoints : 0;
+            const pointsNeeded =
+              level.minPoints > totalPoints ? level.minPoints - totalPoints : 0;
 
             // Определяем цвет для кружка уровня
             let circleBackground;
-            if (status === 'completed') {
-              circleBackground = `linear-gradient(135deg, ${level.color || '#003466'}, ${level.color || '#0056b3'})`;
+            if (status === "completed") {
+              circleBackground = `linear-gradient(135deg, ${level.color || "#003466"}, ${level.color || "#0056b3"})`;
             } else if (isCurrent) {
               circleBackground = `linear-gradient(135deg, #28a745, #20c997)`;
             } else {
@@ -40,7 +46,7 @@ const AchievementsTab = ({ achievementsData, allLevels, totalPoints, currentLeve
             return (
               <div
                 key={level.id}
-                className={`${styles.levelItem} ${styles[status]} ${isCurrent ? styles.current : ''}`}
+                className={`${styles.levelItem} ${styles[status]} ${isCurrent ? styles.current : ""}`}
               >
                 <div
                   className={styles.levelCircle}
@@ -51,21 +57,29 @@ const AchievementsTab = ({ achievementsData, allLevels, totalPoints, currentLeve
                 <div className={styles.levelInfoBlock}>
                   <div className={styles.levelHeader}>
                     <h4 className={styles.levelName}>{level.name}</h4>
-                    {status === 'completed' && (
-                      <span className={`${styles.levelBadge} ${styles.completed}`}>
+                    {status === "completed" && (
+                      <span
+                        className={`${styles.levelBadge} ${styles.completed}`}
+                      >
                         ПРОЙДЕН
                       </span>
                     )}
                     {isCurrent && (
-                      <span className={`${styles.levelBadge} ${styles.current}`}>ТЕКУЩИЙ</span>
+                      <span
+                        className={`${styles.levelBadge} ${styles.current}`}
+                      >
+                        ТЕКУЩИЙ
+                      </span>
                     )}
-                    {status === 'locked' && pointsNeeded > 0 && (
+                    {status === "locked" && pointsNeeded > 0 && (
                       <span className={`${styles.levelBadge} ${styles.locked}`}>
                         {pointsNeeded} БАЛЛОВ
                       </span>
                     )}
                   </div>
-                  <p className={styles.levelPoints}>от {level.min_points} баллов</p>
+                  <p className={styles.levelPoints}>
+                    от {level.minPoints} баллов
+                  </p>
                   <p className={styles.levelDescription}>{level.description}</p>
                 </div>
               </div>
@@ -76,13 +90,13 @@ const AchievementsTab = ({ achievementsData, allLevels, totalPoints, currentLeve
 
       {/* Сетка достижений */}
       <div className={styles.achievementsGrid}>
-        {achievementsData.map(achievement => (
+        {achievementsData.map((achievement) => (
           <div
             key={achievement.id}
-            className={`${styles.achievementCard} ${!achievement.achieved ? styles.locked : ''}`}
+            className={`${styles.achievementCard} ${!achievement.achieved ? styles.locked : ""}`}
           >
             <div className={styles.achievementIcon}>
-              {achievement.achieved ? achievement.icon : '🔒'}
+              {achievement.achieved ? achievement.icon : "🔒"}
             </div>
             <h4>{achievement.title}</h4>
             <p>{achievement.description}</p>

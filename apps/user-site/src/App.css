@@ -8,20 +8,25 @@
   box-sizing: border-box;
 }
 
+html {
+  /* Боковой скролл: мобильный drawer шапки — position:fixed со
+     transform (GSAP xPercent: 100). Прятание через visibility:hidden
+     не убирает его из scrollWidth: transformированный fixed-элемент
+     расширяет область прокрутки корня — отсюда боковой скроллбар.
+     overflow-x: clip на html режет горизонталь у самого viewport,
+     вертикальный скролл и position: sticky не затрагивает. */
+  overflow-x: clip;
+}
+
 body {
   position: relative;
   font-family: "Kontora", sans-serif;
   line-height: 1.6;
   color: #333;
   min-height: 100vh;
-  /* ВАЖНО для sticky-шапки: `overflow-x: hidden` превращает body в
-     scroll-контейнер — position: sticky на дочернем header перестаёт
-     «прилипать» к viewport и уходит вместе со страницей.
-     `overflow-x: clip` даёт тот же эффект (обрезает по горизонтали,
-     без скроллбара), но НЕ создаёт scroll-контейнер — sticky работает.
-     fallback — `overflow-x: hidden` ниже отдельной строкой. */
-  overflow-x: clip; /* переопределяет hidden в современных браузерах — режет
-                         горизонталь без создания scroll-контейнера, sticky работает */
+  /* Дубль защиты на body: clip (в отличие от hidden) не создаёт
+     scroll-контейнер, поэтому sticky-шапка продолжает работать. */
+  overflow-x: clip;
 }
 
 .App {
