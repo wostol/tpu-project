@@ -567,7 +567,10 @@ const Header = () => {
           </li>
         ))}
       </ul>
-
+      {/* Пауза между группами: гибкий спейсер с линией строго по центру
+        разрыва (margin-inline:auto через flex:1) — осмысленная пауза
+        вместо линии, прилипшей к правому кластеру. В drawer скрыт. */}
+      <span className="nav-divider" aria-hidden="true" />
       {/* Личные действия */}
       <ul className="nav-group nav-group--actions" ref={actionsGroupRef}>
         <li

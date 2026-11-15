@@ -1,30 +1,36 @@
 @import url("../fonts.css");
-
 /* ============================================================================
-   Header — редизайн «дышащей» шапки (accessibility-first)
-   ----------------------------------------------------------------------------
-   1. Шум: 7 иконок + 7 подписей = 14 акцентов. Иконки дублировали текст,
-      поэтому из постоянного показа убраны. Остались честные сигналы:
-      счётчик корзины (читаемый чип, а не точка) и CTA «Войти».
-      Иконки в DOM живут только у личных действий — показываются на
-      769–1024px, где подписи физически не помещаются.
-   2. Ритм: внутри группы — равный шаг 6px; единственный крупный интервал
-      перед «личными действиями» промаркирован вертикальным разделителем —
-      теперь это осмысленная пауза, а не дыра в макете.
-   3. Воздух: панель 80px при целях 44px = по 18px сверху и снизу.
-      В покое нет ни рамки, ни тени; линия и тень — только отклик на скролл.
-      Text-shadow больше не нужны: фон плотнее (0.72), контраст текста
-      ≥ 6.5:1 даже над тёмным hero.
-   4. Микротипографика: «ПРОГРАММА ЛОЯЛЬНОСТИ» убрана из панели и переехала
-      в drawer — читаемым кеглем на белом (6:1).
-   Точки перелома: 1920 → 1280 → 1024 → 768 → 480 → 360.
-   ========================================================================== */
-
+Header — редизайн «дышащей» шапки (accessibility-first)
+Шум: 7 иконок + 7 подписей = 14 акцентов. Иконки дублировали текст,
+поэтому из постоянного показа убраны. Остались честные сигналы:
+счётчик корзины (читаемый чип, а не точка) и CTA «Войти».
+Иконки в DOM живут только у личных действий — показываются на
+769–1024px, где подписи физически не помещаются.
+Ритм: внутри группы — равный шаг 6px по боксам (padding одинаков у
+всех .pill, поэтому оптические промежутки равны). Пауза между
+группами — гибкий спейсер .nav-divider с линией строго по центру:
+осмысленная пауза, а не дыра с прилипшей к правому кластеру линией.
+Состояние vs действие: в шапке ровно ОДНА залитая плашка — CTA
+«Войти». Активный пункт — tinted-плашка (индикатор GSAP) + semibold +
+underline 2px: состояние не полагается только на цвет (1.4.1) и не
+спорит с CTA за визуальный вес.
+Воздух: панель 80px при целях 44px = по 18px сверху и снизу.
+В покое нет ни рамки, ни тени; линия и тень — только отклик на скролл.
+Text-shadow больше не нужны: фон плотнее (0.72), контраст текста
+≥ 6.5:1 даже над тёмным hero.
+Микротипографика: «ПРОГРАММА ЛОЯЛЬНОСТИ» убрана из панели и переехала
+в drawer — читаемым кеглем на белом (6:1).
+Модальность drawer: overlay затемняет И размывает фон (blur 12px) —
+визуальное усиление модальности поверх inert/focus-trap. Анимировем
+только opacity: blur гаснет вместе с ней, без анимации радиуса.
+Есть фолбэки: @supports (нет blur) и prefers-reduced-transparency —
+scrim усиливается до 0.68, модальность не разваливается.
+Точки перелома: 1920 → 1280 → 1024 → 768 → 480 → 360.
+========================================================================== */
 :root {
   /* Вертикальный ритм */
   --header-h: 80px;
   --header-h-compact: 68px;
-
   /* Цвета (имена сохранены — их могут использовать другие файлы) */
   --brand-blue: #003466;
   --brand-green: #28be46;
@@ -32,22 +38,22 @@
   --header-bg: rgba(255, 255, 255, 0.72);
   --header-bg-scrolled: rgba(255, 255, 255, 0.9);
   --pill-hover-bg: rgba(0, 52, 102, 0.06);
-  --pill-active-text: #fff;
+  /* Активный пункт больше не заливается наглухо: tinted + weight +
+     underline. #fff в имени токена был в эпоху плашки-близнеца. */
+  --pill-active-text: #003466;
+  --pill-active-bg: rgba(0, 52, 102, 0.1);
   --divider: rgba(0, 52, 102, 0.25);
   --brand-blue-hover: #00244a;
-
   /* Моушн */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
-
 html {
   scroll-padding-top: calc(var(--header-h) + 16px);
 }
-
 /* Компонент самодостаточен: не полагаемся на глобальный
-   `* { box-sizing: border-box }` — иначе max-width + padding
-   дают горизонтальный overflow. .main-nav нужно отдельно: на мобиле
-   он живёт в portal на уровне body, вне .header-скоупа */
+`* { box-sizing: border-box }` — иначе max-width + padding
+дают горизонтальный overflow. .main-nav нужно отдельно: на мобиле
+он живёт в portal на уровне body, вне .header-скоупа */
 .header,
 .header *,
 .header *::before,
@@ -58,9 +64,7 @@ html {
 .main-nav *::after {
   box-sizing: border-box;
 }
-
 /* ---------- Панель ---------- */
-
 .header {
   position: sticky;
   top: 0;
@@ -80,13 +84,11 @@ html {
     border-color 0.3s ease,
     box-shadow 0.3s ease;
 }
-
 .header.is-scrolled {
   background: var(--header-bg-scrolled);
   border-bottom-color: rgba(0, 52, 102, 0.08);
   box-shadow: 0 6px 24px rgba(0, 26, 51, 0.08);
 }
-
 @supports not (
   (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
 ) {
@@ -94,16 +96,13 @@ html {
     background: rgba(255, 255, 255, 0.96);
   }
 }
-
 /* ---------- Контейнер ---------- */
-
 .header__container {
   width: 100%;
   max-width: 1280px;
   margin-inline: auto;
   padding-inline: 32px;
 }
-
 /* 1920+: панели 1280 мало — даём больше воздуха */
 @media (min-width: 1920px) {
   .header__container {
@@ -111,20 +110,16 @@ html {
     padding-inline: 40px;
   }
 }
-
 .header__inner {
   display: flex;
   align-items: center;
   min-height: var(--header-h);
   transition: min-height 0.3s var(--ease-out);
 }
-
 .header.is-scrolled .header__inner {
   min-height: var(--header-h-compact);
 }
-
-/* ---------- Бренд: одна строка, без микрокипографики ---------- */
-
+/* ---------- Бренд: одна строка, без микротипографики ---------- */
 .brand {
   display: inline-flex;
   align-items: center;
@@ -133,7 +128,6 @@ html {
   text-decoration: none;
   border-radius: 10px;
 }
-
 .brand__logo {
   width: 44px;
   height: 44px;
@@ -142,12 +136,10 @@ html {
     width 0.25s var(--ease-out),
     height 0.25s var(--ease-out);
 }
-
 .header.is-scrolled .brand__logo {
   width: 40px;
   height: 40px;
 }
-
 .brand__title {
   font-size: 16px;
   font-weight: 700;
@@ -156,14 +148,11 @@ html {
   color: var(--brand-blue);
   white-space: nowrap;
 }
-
 .brand:focus-visible {
   outline: 2px solid var(--brand-blue);
   outline-offset: 3px;
 }
-
 /* ---------- Навигация ---------- */
-
 .main-nav {
   display: flex;
   align-items: center;
@@ -171,38 +160,39 @@ html {
   margin-left: 28px;
   min-width: 0;
 }
-
 .nav-group {
   position: relative !important; /* защита от `position: static !important` в других CSS */
   display: flex;
   align-items: center;
-  gap: 6px; /* единый шаг внутри группы */
+  gap: 6px; /* единый шаг внутри группы по боксам .pill */
   margin: 0;
   padding: 0;
   list-style: none;
 }
-
-/* Личные действия прижаты вправо; крупная пауза перед ними отмечена
-   разделителем, примыкающим к группе */
-.nav-group--actions {
-  margin-left: auto;
+/* Пауза между группами: гибкий спейсер съедает свободное место,
+   а линия рендерится его ::before строго по центру паузы —
+   равный воздух с обеих сторон вместо прилипшей к кластеру линии */
+.nav-divider {
+  flex: 1 1 auto;
+  min-width: 24px;
+  margin-inline: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
 }
-
-.nav-group--actions::before {
+.nav-divider::before {
   content: "";
   flex: none;
   width: 1px;
   height: 24px;
   background: var(--divider);
-  margin-right: 22px;
 }
-
 .nav-group__item {
   display: flex;
 }
-
-/* Плашка-индикатор (GSAP). Без тени: тень «наклеивала» активный пункт
-   и вместе с рамкой собирала тот самый периметр-рамку */
+/* Плашка-индикатор (GSAP). Tinted, без тени: залитая плашка
+   дублировала CTA «Войти» и собирала близнецов. */
 .nav-indicator {
   position: absolute;
   left: 0;
@@ -212,16 +202,14 @@ html {
   width: 0;
   opacity: 0;
   border-radius: 999px;
-  background: var(--brand-blue);
+  background: var(--pill-active-bg);
   pointer-events: none;
   z-index: 0;
   will-change: transform, width, opacity;
   list-style: none;
   display: block;
 }
-
 /* ---------- Pill ---------- */
-
 .pill {
   position: relative;
   z-index: 1;
@@ -247,41 +235,41 @@ html {
     color 0.25s ease,
     background-color 0.2s ease;
 }
-
 .pill:focus-visible {
   outline: 2px solid var(--brand-blue);
   outline-offset: 3px;
 }
-
+/* Активный пункт: tinted-плашка (индикатор) + semibold + underline.
+   Три сигнала, ни один не только цветовой (WCAG 1.4.1). */
 .pill.is-active {
   color: var(--pill-active-text);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 5px;
 }
-
-/* CTA «Войти» — единственный цветовой акцент справа */
+/* CTA «Войти» — ЕДИНСТВЕННАЯ залитая плашка в шапке */
 .pill--cta {
   background: var(--brand-blue);
   color: #fff;
   font-weight: 600;
+  text-decoration: none;
 }
-
 /* Иконки по умолчанию скрыты: подпись всегда с собой.
    Показываются только у actions на 769–1024px (см. media). */
 .pill__icon {
   display: none;
 }
-
 .pill__svg {
   display: block;
   width: 22px;
   height: 22px;
   fill: currentColor;
 }
-
 .pill__label {
   display: inline-block;
   white-space: nowrap;
 }
-
 /* Счётчик корзины — читаемый чип с реальной цифрой (не микро-точка).
    #0e7a2a вместо яркого #28be46: белый текст на зелёном проходит AA. */
 .pill__badge {
@@ -301,7 +289,6 @@ html {
   pointer-events: none;
   animation: badge-pop 0.25s var(--ease-out);
 }
-
 @keyframes badge-pop {
   from {
     transform: scale(0.4);
@@ -312,25 +299,20 @@ html {
     opacity: 1;
   }
 }
-
 /* Hover только для устройств с курсором: на тач-устройствах
    :hover «залипает» после тапа */
 @media (hover: hover) {
   .pill:hover:not(.is-active):not(.pill--cta) {
     background: var(--pill-hover-bg);
   }
-
   .pill--cta:hover {
     background: var(--brand-blue-hover);
   }
-
   .drawer-close:hover {
     background: var(--pill-hover-bg);
   }
 }
-
 /* ---------- Бургер ---------- */
-
 .burger {
   display: none; /* скрыт на десктопе */
   position: relative;
@@ -344,7 +326,6 @@ html {
   z-index: 1010;
   margin-left: auto;
 }
-
 .burger__line {
   position: absolute;
   left: 10px;
@@ -356,7 +337,6 @@ html {
     transform 0.3s var(--ease-out),
     opacity 0.2s ease;
 }
-
 .burger__line:nth-child(1) {
   transform: translateY(-7px);
 }
@@ -366,7 +346,6 @@ html {
 .burger__line:nth-child(3) {
   transform: translateY(7px);
 }
-
 .burger.is-open .burger__line:nth-child(1) {
   transform: rotate(45deg);
 }
@@ -376,100 +355,111 @@ html {
 .burger.is-open .burger__line:nth-child(3) {
   transform: rotate(-45deg);
 }
-
 .burger:focus-visible {
   outline: 2px solid var(--brand-blue);
   outline-offset: 2px;
   border-radius: 8px;
 }
-
 /* ---------- Overlay и служебное ---------- */
-
 .menu-overlay {
   position: fixed;
   inset: 0;
+  /* Scrim держим достаточно плотным, чтобы при отключённом blur
+     модальность сохранялась одним затемнением */
   background: rgba(0, 20, 40, 0.45);
+  /* Blur — визуальное усиление модальности ПОВЕРХ inert/focus-trap.
+     GSAP анимирует только opacity элемента: blur гаснет вместе с ней,
+     радиус не анимируется (дорогой repaint). */
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
   opacity: 0;
   visibility: hidden;
   z-index: 1004;
 }
-
+/* Нет поддержки backdrop-filter — усиливаем scrim */
+@supports not (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
+  .menu-overlay {
+    background: rgba(0, 20, 40, 0.68);
+  }
+  .main-nav {
+    background: #fff;
+  }
+}
+/* Пользователь просил меньше прозрачности (macOS/Windows) —
+   убираем blur везде, модальность и читаемость держит плотный фон */
+@media (prefers-reduced-transparency: reduce) {
+  .header {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: rgba(255, 255, 255, 0.96);
+  }
+  .menu-overlay {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: rgba(0, 20, 40, 0.68);
+  }
+  .main-nav {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: #fff;
+  }
+}
 /* Шапка drawer (брендблок + крестик) видна только в мобильном меню */
 .drawer-head,
 .drawer-brand {
   display: none;
 }
-
 .icon-sprite {
   position: absolute;
   width: 0;
   height: 0;
   overflow: hidden;
 }
-
 /* ---------- ≤1280px: плотнее, но без потери воздуха ---------- */
-
 @media (max-width: 1280px) {
   .header__container {
     padding-inline: 24px;
   }
-
   .main-nav {
     margin-left: 20px;
   }
-
   .nav-group {
     gap: 4px;
   }
-
-  .nav-group--actions::before {
-    margin-right: 18px;
-  }
-
   .pill {
     padding: 0 13px;
     font-size: 14px;
   }
-
   .brand__title {
     font-size: 15px;
   }
 }
-
 /* ---------- 769–1024px: личные действия — только иконки ----------
-   Иконка без дублирующего текста снова несёт смысл; подписи возвращаются
-   в tooltip под целью. */
+Иконка без дублирующего текста снова несёт смысл; подписи возвращаются
+в tooltip под целью. */
 @media (max-width: 1024px) and (min-width: 769px) {
   .header__container {
     padding-inline: 20px;
   }
-
   .main-nav {
     margin-left: 16px;
   }
-
   .pill {
     padding: 0 12px;
     font-size: 14px;
   }
-
   .nav-group--main .pill {
     padding: 0 11px;
   }
-
-  .nav-group--actions::before {
-    margin-right: 16px;
-  }
-
   .nav-group--actions .pill {
     width: 44px;
     padding: 0;
   }
-
   .nav-group--actions .pill__label {
     display: none;
   }
-
   .nav-group--actions .pill__icon {
     display: flex;
     align-items: center;
@@ -477,7 +467,6 @@ html {
     width: 22px;
     height: 22px;
   }
-
   /* Чип превращается в компактный счётчик на углу цели */
   .nav-group--actions .pill__badge {
     position: absolute;
@@ -490,38 +479,37 @@ html {
     box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85);
   }
 }
-
 /* ---------- 769–900px: самая тесная зона десктопа ----------
-   Компактный бренд и 13px подписи — навигация гарантированно
-   помещается даже с широкими шрифтами. */
+Компактный бренд и 13px подписи — навигация гарантированно
+помещается даже с широкими шрифтами. Разделитель паузы убираем:
+в тесноте он снова начал бы прилипать к кластеру. */
+/* ---------- 769–900px: самая тесная зона десктопа ---------- */
 @media (max-width: 900px) and (min-width: 769px) {
   .main-nav {
     margin-left: 12px;
   }
-
   .pill {
     font-size: 13px;
   }
-
   .nav-group--main .pill {
     padding: 0 10px;
   }
-
-  .nav-group--actions::before {
-    margin-right: 12px;
+  .nav-divider::before {
+    display: none;
   }
-
+  .nav-divider {
+    min-width: 16px;
+    margin-inline: 8px;
+  }
   .brand__title {
     font-size: 13px;
     letter-spacing: 0.03em;
   }
-
   .brand__logo {
     width: 36px;
     height: 36px;
   }
 }
-
 /* Tooltip только для мыши/клавиатуры и только в режиме иконок.
    Открывается ПОД целью (шапка прижата к верху viewport — над целью
    подсказку обрезало бы экраном). */
@@ -549,7 +537,6 @@ html {
     z-index: 1020;
     box-shadow: 0 4px 12px rgba(0, 26, 51, 0.22);
   }
-
   .nav-group--actions .pill::before {
     content: "";
     position: absolute;
@@ -567,7 +554,6 @@ html {
       visibility 0.18s ease;
     z-index: 1020;
   }
-
   .nav-group--actions .pill:hover::after,
   .nav-group--actions .pill:focus-visible::after,
   .nav-group--actions .pill:hover::before,
@@ -577,34 +563,27 @@ html {
     transform: translateX(-50%) translateY(0);
   }
 }
-
 /* ---------- ≤768px: бургер + drawer ---------- */
-
 @media (max-width: 768px) {
   :root {
     --header-h: 64px;
     --header-h-compact: 64px; /* на мобиле панель не сжимается при скролле */
   }
-
   .header__container {
     padding-inline: 16px;
   }
-
   .burger {
     display: block;
     margin-left: auto;
     flex-shrink: 0;
   }
-
   .brand__logo {
     width: 40px;
     height: 40px;
   }
-
   .brand__title {
     font-size: 15px;
   }
-
   .main-nav {
     position: fixed;
     top: 0;
@@ -626,7 +605,6 @@ html {
     visibility: hidden;
     z-index: 1005;
   }
-
   /* Шапка drawer: брендблок + крестик. Панель перекрывает бургер в правом
      верхнем углу, поэтому кнопка закрытия живёт внутри самой панели —
      ровно на том месте, где был бургер */
@@ -638,7 +616,6 @@ html {
     padding: 4px 0 18px;
     margin-bottom: 10px;
   }
-
   /* Полный брендблок — читаемо, на белом, без микрокегля */
   .drawer-brand {
     display: flex;
@@ -646,7 +623,6 @@ html {
     gap: 12px;
     min-width: 0;
   }
-
   .drawer-close {
     display: inline-flex;
     align-items: center;
@@ -662,26 +638,22 @@ html {
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
   }
-
   .drawer-close:focus-visible {
     outline: 2px solid var(--brand-blue);
     outline-offset: 2px;
   }
-
   .drawer-brand__logo {
     width: 40px;
     height: 40px;
     object-fit: contain;
     flex: none;
   }
-
   .drawer-brand__text {
     display: flex;
     flex-direction: column;
     gap: 5px;
     min-width: 0;
   }
-
   .drawer-brand__title {
     font-size: 15px;
     font-weight: 700;
@@ -689,7 +661,6 @@ html {
     line-height: 1;
     color: var(--brand-blue);
   }
-
   .drawer-brand__subtitle {
     font-size: 10px;
     font-weight: 600;
@@ -698,29 +669,29 @@ html {
     line-height: 1;
     color: rgba(0, 52, 102, 0.75); /* ~6:1 к белому — читается */
   }
-
   .nav-group {
     flex-direction: column;
     align-items: stretch;
     gap: 6px;
     width: 100%;
   }
-
+  .nav-group--main {
+    margin-bottom: 12px; /* минимальный зазор перед прижатым низом */
+  }
+  .nav-divider {
+    display: none;
+  }
+  /* Личные действия + CTA прижаты к низу панели: пустой хвост
+     превращается в осмысленный воздух между разделами */
   .nav-group--actions {
     margin-left: 0;
-    margin-top: 12px;
+    margin-top: auto;
     padding-top: 16px;
     border-top: 1px solid var(--divider);
   }
-
-  .nav-group--actions::before {
-    display: none;
-  }
-
   .nav-indicator {
     display: none;
   }
-
   .pill {
     width: 100%;
     height: 52px;
@@ -728,72 +699,59 @@ html {
     padding: 0 16px;
     font-size: 16px;
   }
-
+  /* Активный в drawer: тот же язык, что на десктопе — tinted + weight +
+     underline. Залитой плашки больше нет: CTA «Войти» остаётся
+     единственной заливкой в панели. */
   .pill.is-active {
-    background: var(--brand-blue);
-    color: #fff;
+    background: var(--pill-active-bg);
+    text-underline-offset: 6px;
   }
-
   .nav-group--actions .pill--cta {
     justify-content: center;
   }
-
   .pill__badge {
     margin-left: auto;
   }
 }
-
 /* ---------- ≤480px ---------- */
-
 @media (max-width: 480px) {
   .header__container {
     padding-inline: 14px;
   }
-
   .main-nav {
     width: min(90vw, 380px);
   }
-
   .brand__title {
     font-size: 14px;
   }
-
   .brand__logo {
     width: 38px;
     height: 38px;
   }
-
   .drawer-brand__logo {
     width: 38px;
     height: 38px;
   }
 }
-
 /* ---------- ≤360px ---------- */
-
 @media (max-width: 360px) {
   .header__container {
     padding-inline: 12px;
   }
-
   /* На самых узких экранах drawer занимает всю ширину */
   .main-nav {
     width: 100%;
   }
-
   .brand__logo {
     width: 34px;
     height: 34px;
   }
-
   .brand__title {
     font-size: 13px;
     letter-spacing: 0.03em;
   }
 }
-
 /* ---------- Reduced motion ---------- */
-
 @media (prefers-reduced-motion: reduce) {
   .header,
   .header__inner,
@@ -803,7 +761,6 @@ html {
   .burger__line {
     transition: none !important;
   }
-
   .pill__badge {
     animation: none;
   }
