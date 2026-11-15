@@ -163,34 +163,59 @@ async function main(): Promise<void> {
   });
 
   // ─── Уровни ───
-  await prisma.level.createMany({
-    data: [
-      {
-        name: "Новичок",
-        minPoints: 0,
-        description: "Начальный уровень",
-        color: "#888888",
-      },
-      {
-        name: "Любитель",
-        minPoints: 100,
-        description: "100+ баллов",
-        color: "#00aa00",
-      },
-      {
-        name: "Опытный",
-        minPoints: 300,
-        description: "300+ баллов",
-        color: "#0088cc",
-      },
-      {
-        name: "Чемпион",
-        minPoints: 500,
-        description: "500+ баллов",
-        color: "#cc0000",
-      },
-    ],
-  });
+  const LEVELS_SEED = [
+    {
+      name: "Львёнок",
+      minPoints: 0,
+      bonusPercent: 2,
+      color: "#5aa05a",
+      description: "Стартовый значок в профиле",
+      prize: "Стартовый значок в профиле",
+    },
+    {
+      name: "Медный лев",
+      minPoints: 500,
+      bonusPercent: 7,
+      color: "#b87333",
+      description: "Приоритетная запись на мероприятия",
+      prize: "Приоритетная запись на мероприятия",
+    },
+    {
+      name: "Бронзовый лев",
+      minPoints: 1200,
+      bonusPercent: 10,
+      color: "#cd7f32",
+      description: "Доступ к закрытым мероприятиям клуба",
+      prize: "Доступ к закрытым мероприятиям клуба",
+    },
+    {
+      name: "Серебряный лев",
+      minPoints: 2500,
+      bonusPercent: 15,
+      color: "#9ea7b3",
+      description: "Фирменный мерч спортклуба",
+      prize: "Фирменный мерч спортклуба",
+    },
+    {
+      name: "Золотой лев",
+      minPoints: 3500,
+      bonusPercent: 17,
+      color: "#d4a017",
+      description: "Скидка 10% в магазине мерча",
+      prize: "Скидка 10% в магазине мерча",
+    },
+    {
+      name: "Сибирский лев",
+      minPoints: 5000,
+      bonusPercent: 20,
+      color: "#003466",
+      description: "Скидка 10% в ФОЦ ТПУ",
+      prize: "Скидка 10% в ФОЦ ТПУ",
+    },
+  ];
+
+  await prisma.level.createMany({ data: LEVELS_SEED });
+  console.log(`  ✓ уровней: ${LEVELS_SEED.length}`);
 
   // ─── Магазин ───
   // ─── Магазин ───
@@ -245,17 +270,17 @@ async function main(): Promise<void> {
 
   // ─── Заказы со снапшотом ───
   // Заказ: Футболка (1 шт) + Кружка (2 шт)
-const orderItems = [
-  { product: shopItems[1], quantity: 1 },
-  { product: shopItems[3], quantity: 2 },
-].map(({ product, quantity }) => ({
-  productId: product.id,
-  name: product.name,
-  image: product.image ?? '/img/placeholder.webp', // ← fallback, если у товара нет картинки
-  points: product.points,
-  quantity,
-  linePoints: product.points * quantity,
-}))
+  const orderItems = [
+    { product: shopItems[1], quantity: 1 },
+    { product: shopItems[3], quantity: 2 },
+  ].map(({ product, quantity }) => ({
+    productId: product.id,
+    name: product.name,
+    image: product.image ?? "/img/placeholder.webp", // ← fallback, если у товара нет картинки
+    points: product.points,
+    quantity,
+    linePoints: product.points * quantity,
+  }));
 
   const totalPoints = orderItems.reduce(
     (sum, item) => sum + item.linePoints,

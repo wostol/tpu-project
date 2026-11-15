@@ -1,6 +1,33 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import styles from "./ProfileTabs.module.css";
+import { pluralizePoints } from "./pointsUtils";
 
+const RulesIcon = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+    <path d="M9 7h7M9 11h7" />
+  </svg>
+);
+
+/*
+ * Вкладка «Достижения» — личная витрина (паттерн Steam):
+ *  - лестница уровней с личным статусом (пройден / текущий / заблокирован);
+ *  - приз и бонус к физ-ре для каждого уровня;
+ *  - сетка достижений;
+ *  - мост к публичной странице «Правила и уровни» (/levels), где лежат
+ *    таблицы начислений и регламент — правила одинаковы для всех,
+ *    здесь показан только личный прогресс по ним.
+ */
 const AchievementsTab = ({
   achievementsData,
   allLevels,
@@ -9,9 +36,7 @@ const AchievementsTab = ({
 }) => {
   // Определяем статус для каждого уровня
   const getLevelStatus = (levelMinPoints) => {
-    if (totalPoints >= levelMinPoints) {
-      return "completed";
-    }
+    if (totalPoints >= levelMinPoints) return "completed";
     return "locked";
   };
 
@@ -51,6 +76,7 @@ const AchievementsTab = ({
                 <div
                   className={styles.levelCircle}
                   style={{ background: circleBackground }}
+                  aria-hidden="true"
                 >
                   {level.id}
                 </div>
@@ -73,20 +99,48 @@ const AchievementsTab = ({
                     )}
                     {status === "locked" && pointsNeeded > 0 && (
                       <span className={`${styles.levelBadge} ${styles.locked}`}>
-                        {pointsNeeded} БАЛЛОВ
+                        ЕЩЁ {pointsNeeded} {pluralizePoints(pointsNeeded)}
                       </span>
                     )}
                   </div>
                   <p className={styles.levelPoints}>
-                    от {level.minPoints} баллов
+                    от {level.minPoints.toLocaleString("ru-RU")}{" "}
+                    {pluralizePoints(level.minPoints)} · бонус к физ-ре +
+                    {level.bonus_percent}%
                   </p>
-                  <p className={styles.levelDescription}>{level.description}</p>
+                  {level.prize && (
+                    <p className={styles.levelDescription}>
+                      Награда: {level.prize}
+                    </p>
+                  )}
+                  {!level.prize && level.description && (
+                    <p className={styles.levelDescription}>
+                      {level.description}
+                    </p>
+                  )}
                 </div>
               </div>
             );
           })}
         </div>
       </div>
+
+      {/* МОСТ К ПУБЛИЧНЫМ ПРАВИЛАМ */}
+      <Link to="/levels" className={styles.rulesBridgeCard}>
+        <span className={styles.rulesBridgeIcon}>
+          <RulesIcon />
+        </span>
+        <span className={styles.rulesBridgeInfo}>
+          <strong>Как начисляются баллы?</strong>
+          <small>
+            Таблицы начислений, бонусы капитана и сборной, правила зачёта по
+            физкультуре — на странице «Правила и уровни»
+          </small>
+        </span>
+        <span className={styles.rulesBridgeArrow} aria-hidden="true">
+          →
+        </span>
+      </Link>
 
       {/* Сетка достижений */}
       <div className={styles.achievementsGrid}>
@@ -95,7 +149,7 @@ const AchievementsTab = ({
             key={achievement.id}
             className={`${styles.achievementCard} ${!achievement.achieved ? styles.locked : ""}`}
           >
-            <div className={styles.achievementIcon}>
+            <div className={styles.achievementIcon} aria-hidden="true">
               {achievement.achieved ? achievement.icon : "🔒"}
             </div>
             <h4>{achievement.title}</h4>

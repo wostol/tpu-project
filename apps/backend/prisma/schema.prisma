@@ -126,13 +126,14 @@ model OrderItem {
 }
 
 model Level {
-  id          Int      @id @default(autoincrement())
-  name        String
-  minPoints   Int
-  description String?
-  color       String   @default("#000000")
+  id           Int      @id @default(autoincrement())
+  name         String
+  minPoints    Int
+  description  String?
+  bonusPercent Int      @default(0) // бонус к зачёту по физ-ре, %
+  prize        String? // приз уровня
+  color        String   @default("#000000")
 }
-
 model Notification {
   id        Int      @id @default(autoincrement())
   userId    Int

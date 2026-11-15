@@ -1,44 +1,15 @@
 import React, { useState, useEffect, useCallback } from "react";
 import styles from "./ProfileTabs.module.css";
 import { apiRequest } from "../../auth/apiClient";
+import { getTypeMeta, formatDate } from "./pointsUtils";
 
-// В таблице PointsHistory нет поля type — категорию определяем
-// по тексту reason, а приход/расход — по знаку points
-const getTypeMeta = (reason, points) => {
-  const isPositive = points > 0;
-  const r = (reason || "").toLowerCase();
-
-  if (r.startsWith("покупка")) {
-    return { label: "Покупка в магазине", role: "expense" };
-  }
-  if (r.includes("возврат")) {
-    return { label: "Возврат средств", role: "income" };
-  }
-  if (r.includes("приз")) {
-    return { label: "Награда", role: "income" };
-  }
-  if (r.includes("бонус")) {
-    return { label: "Бонус", role: "income" };
-  }
-  if (r.includes("регистрац") || r.includes("посещен") || r.includes("участ")) {
-    return { label: "Мероприятие", role: "income" };
-  }
-  return {
-    label: isPositive ? "Начисление" : "Списание",
-    role: isPositive ? "income" : "expense",
-  };
-};
-
-const formatDate = (iso) => {
-  const d = new Date(iso);
-  return {
-    day: d.getDate().toString().padStart(2, "0"),
-    month: d.toLocaleString("ru-RU", { month: "short", year: "numeric" }),
-    time: d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }),
-  };
-};
-
-const PointsHistory = ({ pageSize = 10 }) => {
+/*
+ * История операций с пагинацией «Загрузить ещё».
+ * filter: 'all' | 'income' | 'expense' — фильтр из вкладки «Баллы».
+ * Бэкенд пока не умеет фильтровать по типу, поэтому фильтр применяется
+ * на клиенте к уже загруженным страницам.
+ */
+const PointsHistory = ({ pageSize = 10, filter = "all" }) => {
   const [items, setItems] = useState([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -95,10 +66,9 @@ const PointsHistory = ({ pageSize = 10 }) => {
   if (initialLoad && loading) {
     return (
       <div className={styles.statsEventsHistory}>
-        <h3 className={styles.historyTitle}>История операций</h3>
         <div className={styles.noContent}>
           <div className={styles.spinner} />
-          <p>Загрузка истории...</p>
+          <p>Загрузка истории…</p>
         </div>
       </div>
     );
@@ -107,7 +77,6 @@ const PointsHistory = ({ pageSize = 10 }) => {
   if (error) {
     return (
       <div className={styles.statsEventsHistory}>
-        <h3 className={styles.historyTitle}>История операций</h3>
         <div className={styles.noContent}>
           <p style={{ color: "#dc3545", marginBottom: 12 }}>Ошибка: {error}</p>
           <button
@@ -122,11 +91,17 @@ const PointsHistory = ({ pageSize = 10 }) => {
     );
   }
 
+  // Клиентский фильтр по знаку операции
+  const visible =
+    filter === "all"
+      ? items
+      : items.filter((item) =>
+          filter === "income" ? item.points > 0 : item.points < 0,
+        );
+
   return (
     <div className={styles.statsEventsHistory}>
-      <h3 className={styles.historyTitle}>История операций</h3>
-
-      {items.length === 0 ? (
+      {visible.length === 0 ? (
         <div className={styles.noContent}>
           <svg
             width="64"
@@ -134,22 +109,33 @@ const PointsHistory = ({ pageSize = 10 }) => {
             viewBox="0 0 24 24"
             fill="#6c757d"
             style={{ marginBottom: 16 }}
+            aria-hidden="true"
           >
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V11h-2.8v3.2c0 .83-.67 1.5-1.5 1.5S7.6 15.03 7.6 14.2V9.8c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5V11h2.8V7.8c0-.83-.67-1.5-1.5-1.5S10.4 6.97 10.4 7.8V14c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5z" />
           </svg>
-          <h3>История пуста</h3>
-          <p>Здесь появятся ваши начисления и покупки</p>
+          <h3>
+            {filter === "all"
+              ? "История пуста"
+              : filter === "income"
+                ? "Нет начислений"
+                : "Нет списаний"}
+          </h3>
+          <p>
+            {filter === "expense"
+              ? "Здесь появятся ваши покупки в магазине за баллы"
+              : "Здесь появятся ваши начисления за мероприятия"}
+          </p>
         </div>
       ) : (
-        <div className={styles.eventsHistoryList}>
-          {items.map((item) => {
+        <ul className={styles.eventsHistoryList}>
+          {visible.map((item) => {
             const date = formatDate(item.createdAt);
             const meta = getTypeMeta(item.reason, item.points);
             const isPositive = item.points > 0;
             const color = isPositive ? "#28a745" : "#dc3545";
 
             return (
-              <div
+              <li
                 key={item.id}
                 className={`${styles.eventHistoryItem} ${styles[meta.role]}`}
                 style={{ borderLeftColor: color }}
@@ -166,24 +152,23 @@ const PointsHistory = ({ pageSize = 10 }) => {
                   <p className={styles.eventHistoryRole}>
                     {meta.label} • {date.time}
                   </p>
-                  <p
-                    className={styles.eventHistoryPoints}
-                    style={{ color, fontWeight: 700, fontSize: 16 }}
-                  >
-                    {isPositive ? "+" : ""}
-                    {item.points} баллов
-                  </p>
                 </div>
 
-                <div
-                  className={`${styles.eventHistoryBadge} ${isPositive ? styles.income : styles.expense}`}
-                >
-                  {isPositive ? "ПРИХОД" : "РАСХОД"}
+                <div className={styles.eventHistoryRight}>
+                  <p className={styles.eventHistoryPoints} style={{ color }}>
+                    {isPositive ? "+" : ""}
+                    {item.points}
+                  </p>
+                  <div
+                    className={`${styles.eventHistoryBadge} ${isPositive ? styles.income : styles.expense}`}
+                  >
+                    {isPositive ? "ПРИХОД" : "РАСХОД"}
+                  </div>
                 </div>
-              </div>
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
 
       {hasMore && (
@@ -192,21 +177,12 @@ const PointsHistory = ({ pageSize = 10 }) => {
           onClick={loadMore}
           disabled={loading}
         >
-          {loading ? "Загрузка..." : "Загрузить ещё"}
+          {loading ? "Загрузка…" : "Загрузить ещё"}
         </button>
       )}
 
-      {!hasMore && items.length > 0 && (
-        <p
-          style={{
-            textAlign: "center",
-            color: "#6c757d",
-            marginTop: 20,
-            fontSize: 14,
-          }}
-        >
-          Вы просмотрели всю историю
-        </p>
+      {!hasMore && visible.length > 0 && (
+        <p className={styles.historyEndNote}>Вы просмотрели всю историю</p>
       )}
     </div>
   );

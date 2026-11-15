@@ -16,6 +16,7 @@ import ProtectedRoute from "./ProtectedRoute";
 import { LoadingProvider } from "./context/PageLoadingContext";
 import { BASE_URL } from "./config";
 import HomePage from "./pages/HomePage";
+import LevelsPage from "./pages/LevelsPage";
 import OrderDetailPage from "./pages/OrderDetailPage";
 import ScrollToTop from "./component/ScrollToTop";
 
@@ -35,7 +36,8 @@ function AppContent() {
               <Route path="/event/:id" element={<EventDetail />} />
               <Route path="/shop" element={<ShopPage />} />
               <Route path="/dev-login" element={<DevLoginPage />} />
-
+              {/* Правила и уровни — публичная страница (без авторизации) */}
+              <Route path="/levels" element={<LevelsPage />} />
               {/* Защищенные маршруты - только для авторизованных */}
               <Route
                 path="/profile"

@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { apiRequest } from '../auth/apiClient';
-import './Footer.css';
-import logo from './lion.png';
-import VK from './VK.png';
+import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { apiRequest } from "../auth/apiClient";
+import "./Footer.css";
+import logo from "./lion.png";
+import VK from "./VK.png";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -19,14 +19,16 @@ const Footer = () => {
 
       setLoading(true);
       try {
-        const data = await apiRequest('/events', {
-          method: 'GET',
+        const data = await apiRequest("/events", {
+          method: "GET",
         });
-        const normalized = Array.isArray(data) ? data.map(event => ({
-          id: event.uuid,
-          title: event.title,
-          startDate: event.startDate,
-        })) : [];
+        const normalized = Array.isArray(data)
+          ? data.map((event) => ({
+              id: event.uuid,
+              title: event.title,
+              startDate: event.startDate,
+            }))
+          : [];
 
         // Сортируем по дате начала (убывание) и берём первые 3
         const sorted = normalized
@@ -35,7 +37,7 @@ const Footer = () => {
 
         setRecentEvents(sorted);
       } catch (error) {
-        console.error('Failed to fetch recent events:', error);
+        console.error("Failed to fetch recent events:", error);
       } finally {
         setLoading(false);
       }
@@ -60,12 +62,9 @@ const Footer = () => {
               {loading && recentEvents.length === 0 ? (
                 <li className="footer-nav-link">Загрузка...</li>
               ) : recentEvents.length > 0 ? (
-                recentEvents.map(event => (
+                recentEvents.map((event) => (
                   <li key={event.id}>
-                    <Link
-                      to={`/event/${event.id}`}
-                      className="footer-nav-link"
-                    >
+                    <Link to={`/event/${event.id}`} className="footer-nav-link">
                       {event.title}
                     </Link>
                   </li>
@@ -87,32 +86,53 @@ const Footer = () => {
             </ul>
           </div>
 
-          <div className="footer-nav footer-nav-center">
-          </div>
+          <div className="footer-nav footer-nav-center"></div>
           {/* Личный кабинет */}
           <div className="footer-nav">
             <h3 className="footer-nav-title">ЛИЧНЫЙ КАБИНЕТ</h3>
             <ul className="footer-nav-list">
               <li>
+                <a href="/profile?tab=overview" className="footer-nav-link">
+                  Обзор
+                </a>
+              </li>
+              <li>
                 <a href="/profile?tab=points" className="footer-nav-link">
-                  Мои баллы
+                  Баллы
                 </a>
               </li>
               <li>
-                <a href="/profile?tab=achievements" className="footer-nav-link">
-                  Достижения
+                <a href="/profile?tab=orders" className="footer-nav-link">
+                  Заказы
                 </a>
               </li>
               <li>
-                <a href="/profile?tab=statictick" className="footer-nav-link">
-                  Статистика
+                <a href="/profile?tab=settings" className="footer-nav-link">
+                  Настройки
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* Правила */}
+          <div className="footer-nav">
+            <h3 className="footer-nav-title">ПРОГРАММА</h3>
+            <ul className="footer-nav-list">
+              <li>
+                <a href="/levels" className="footer-nav-link">
+                  Правила и уровни
+                </a>
+              </li>
+              <li>
+                <a href="/levels#reglament-title" className="footer-nav-link">
+                  Регламент
                 </a>
               </li>
             </ul>
           </div>
 
           {/* Контакты */}
-       <div className="footer-nav">
+          <div className="footer-nav">
             <h3 className="footer-nav-title">КОНТАКТЫ</h3>
             <ul className="footer-nav-list">
               <li className="contact-item">
@@ -143,7 +163,8 @@ const Footer = () => {
         {/* Нижняя часть с копирайтом */}
         <div className="footer-bottom">
           <p className="copyright">
-            © {currentYear} Национальный исследовательский Томский политехнический университет
+            © {currentYear} Национальный исследовательский Томский
+            политехнический университет
           </p>
         </div>
       </div>
@@ -151,4 +172,4 @@ const Footer = () => {
   );
 };
 
-export default Footer
+export default Footer;

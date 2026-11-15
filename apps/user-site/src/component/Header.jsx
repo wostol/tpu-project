@@ -1,27 +1,31 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import gsap from "gsap";
 import useAuth from "../auth/useAuth";
 import logo from "./lionsib.svg";
 import "./Header.css";
-// Прямая подписка на zustand store корзины — надёжнее, чем чтение localStorage
-// + window event. Zustand сам ре-рендерит Header при изменении items.
+// Прямая подписка на zustand store корзины: Header ре-рендерится при
+// изменении items сам — без window-событий и чтения localStorage.
 import { useCartStore, cartTotalCount } from "../Shop/cartStore.js";
 
+/* ---------- Навигация ---------- */
+
+/* Только текст. Иконка, дублирующая подпись («Главная» + домик), не несёт
+   информации: она съедает ширину строки и создавала 14 визуальных акцентов
+   в одной полосе. Роль «иконок» остаются за двумя честными сигналами —
+   счётчиком корзины и CTA «Войти».
+   Иконки у личных действий живут в DOM (Pill.icon), но показываются только
+   на 769–1024px — там, где подписи физически не помещаются. */
 const NAV_ITEMS = [
-  { to: "/", label: "Главная", icon: "icon-home", isActive: (p) => p === "/" },
+  { to: "/", label: "Главная", isActive: (p) => p === "/" },
   {
     to: "/events",
     label: "Мероприятия",
-    icon: "icon-calendar",
     isActive: (p) => p.startsWith("/events"),
   },
-  {
-    to: "/shop",
-    label: "Магазин",
-    icon: "icon-bag",
-    isActive: (p) => p.startsWith("/shop"),
-  },
+  { to: "/shop", label: "Магазин", isActive: (p) => p.startsWith("/shop") },
+  { to: "/levels", label: "Правила", isActive: (p) => p.startsWith("/levels") },
 ];
 
 const MOBILE_QUERY = "(max-width: 768px)";
@@ -45,34 +49,42 @@ function useMediaQuery(query) {
 
 /* ---------- Pill ---------- */
 
-// aria-label нужен CSS-tooltip (.pill::after { content: attr(aria-label) }) —
-// без него tooltip пустой и не виден. title — нативный fallback для всех браузеров.
+/* aria-label — полное имя пункта: обязательно для режима «только иконки»
+   (769–1024px), где .pill__label скрыт через display:none.
+   data-tip — подпись для CSS-tooltip в этом же режиме (content: attr(data-tip)).
+   title убран: нативный тултип дублировал кастомный и навязывал задержку.
+   badge вынесен ИЗ иконки в отдельный элемент: в текстовом режиме это
+   читаемая цифра-чип рядом с подписью, в режиме иконок — счётчик на углу цели. */
 const Pill = ({ to, icon, label, active, badge = 0, onClick }) => (
   <Link
     to={to}
     data-pill=""
     className={`pill${active ? " is-active" : ""}`}
     aria-current={active ? "page" : undefined}
-    aria-label={label}
-    title={label}
+    aria-label={badge > 0 ? `${label}: ${badge}` : label}
+    data-tip={label}
     onClick={onClick}
   >
-    <span className="pill__icon">
-      <svg
-        className="pill__svg"
-        width={22}
-        height={22}
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-        focusable="false"
-      >
-        <use href={`#${icon}`} />
-      </svg>
-      {badge > 0 && (
-        <span className="pill__badge">{badge > 99 ? "99+" : badge}</span>
-      )}
-    </span>
+    {icon && (
+      <span className="pill__icon" aria-hidden="true">
+        <svg
+          className="pill__svg"
+          width={22}
+          height={22}
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <use href={`#${icon}`} />
+        </svg>
+      </span>
+    )}
     <span className="pill__label">{label}</span>
+    {badge > 0 && (
+      <span className="pill__badge" aria-hidden="true">
+        {badge > 99 ? "99+" : badge}
+      </span>
+    )}
   </Link>
 );
 
@@ -88,13 +100,12 @@ const Header = () => {
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  // Прямая подписка на zustand store: ре-рендерится автоматически при
-  // изменении items (через useCartStore selector). Если пользователь не
-  // авторизован — бейдж не показываем (0).
+  // Если пользователь не авторизован — бейдж не показываем (0).
   const rawCartCount = useCartStore((s) => cartTotalCount(s.items));
   const cartCount = isAuthenticated ? rawCartCount : 0;
 
   const headerRef = useRef(null);
+  const brandRef = useRef(null);
   const navRef = useRef(null);
   const mainGroupRef = useRef(null);
   const actionsGroupRef = useRef(null);
@@ -109,7 +120,6 @@ const Header = () => {
 
   const closeMenu = () => setIsMenuOpen(false);
 
-  /* ---------- тень при скролле ---------- */
   /* ---------- тень при скролле (с гистерезисом) ---------- */
   useEffect(() => {
     let raf = 0;
@@ -143,25 +153,106 @@ const Header = () => {
     setIsMenuOpen(false);
   }, [location.pathname]);
 
-  /* ---------- блокировка скролла + Esc ---------- */
+  /* ---------- блокировка скролла при открытом drawer ----------
+     Ключевой нюанс: в App.css у html стоит overflow-x: clip, поэтому
+     overflow:hidden на body НЕ распространяется на viewport — body
+     становится собственным scroll-контейнером, и iOS прокручивает его
+     пальцем. Блокируем сам корневой скроллер (html): страница замирает
+     на текущей позиции (проверено: scrollY сохраняется, ничего не
+     прыгает), drawer отрендерен через portal и скроллится внутри себя.
+     Нюанс №2: overflow:hidden на html пересчитывает sticky у шапки —
+     панель «уезжает» за верх экрана. Поэтому на время блокировки шапка
+     фиксируется position:fixed, а её место в потоке компенсируется
+     padding-top у body — контент не дёргается. */
   useEffect(() => {
     if (!(isMobile && isMenuOpen)) return;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const onKeyDown = (e) => {
-      if (e.key === "Escape") {
-        setIsMenuOpen(false);
-        burgerRef.current?.focus();
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
+    const root = document.documentElement;
+    const body = document.body;
+    const header = headerRef.current;
+    const scrollY = window.scrollY;
+    const prevHtmlOverflow = root.style.overflow;
+    const prevBodyOverflow = body.style.overflow;
+    const prevHeaderCss = header?.style.cssText ?? "";
+    const prevBodyPaddingTop = body.style.paddingTop;
+
+    root.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    if (header) {
+      header.style.position = "fixed";
+      header.style.top = "0";
+      header.style.left = "0";
+      // компенсация выхода шапки из потока (высоту берём фактическую)
+      body.style.paddingTop = `${header.offsetHeight}px`;
+    }
+
     return () => {
-      document.body.style.overflow = prevOverflow;
-      window.removeEventListener("keydown", onKeyDown);
+      root.style.overflow = prevHtmlOverflow;
+      body.style.overflow = prevBodyOverflow;
+      if (header) header.style.cssText = prevHeaderCss;
+      body.style.paddingTop = prevBodyPaddingTop;
+      if (window.scrollY !== scrollY) window.scrollTo(0, scrollY);
     };
   }, [isMobile, isMenuOpen]);
 
-  /* ---------- GSAP: ТОЛЬКО индикатор-плашка ---------- */
+  /* ---------- Esc + ловушка фокуса в открытом drawer ----------
+     Tab циклится внутри панели; Esc возвращает фокус на burger. */
+  useEffect(() => {
+    if (!(isMobile && isMenuOpen)) return;
+    const burger = burgerRef.current;
+    const nav = navRef.current;
+
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setIsMenuOpen(false);
+        burger?.focus({ preventScroll: true });
+        return;
+      }
+      if (e.key !== "Tab" || !nav) return;
+
+      // Бургер не включаем: при открытом drawer он уходит ПОД панель
+      // (панель перекрывает правый верх) — мёртвая tab-стопа не нужна.
+      // Закрытие: Esc, кнопка в шапке drawer, клик по overlay.
+      const focusables = Array.from(
+        nav.querySelectorAll(
+          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+      if (!focusables.length) return;
+
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const current = document.activeElement;
+
+      if (e.shiftKey) {
+        if (current === first || !focusables.includes(current)) {
+          e.preventDefault();
+          last.focus({ preventScroll: true });
+        }
+      } else if (current === last || !focusables.includes(current)) {
+        e.preventDefault();
+        first.focus({ preventScroll: true });
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isMobile, isMenuOpen]);
+
+  /* ---------- inert: drawer вне a11y-дерева, когда закрыт; ----------
+     когда открыт — бренд в панели «за диалогом» не фокусируется. */
+  useEffect(() => {
+    const nav = navRef.current;
+    const brand = brandRef.current;
+    if (nav) nav.inert = isMobile && !isMenuOpen;
+    if (brand) brand.inert = isMobile && isMenuOpen;
+    return () => {
+      if (nav) nav.inert = false;
+      if (brand) brand.inert = false;
+    };
+  }, [isMobile, isMenuOpen]);
+
+  /* ---------- GSAP: появление шапки + индикатор-плашка ---------- */
   useLayoutEffect(() => {
     if (loading) return;
     const nav = navRef.current;
@@ -176,12 +267,8 @@ const Header = () => {
     const sync = (animate = true) => {
       groups.forEach(({ list, indicator }) => {
         const active = list.querySelector(".pill.is-active");
-        // Индикатор лежит внутри <ul>, поэтому offsetLeft/offsetWidth —
-        // координаты pill относительно этого же <ul>. Это корректно только
-        // когда у <ul> есть собственный слой позиционирования (position:relative).
-        // Если по какой-то причине relative потерян (конфликт CSS), offsetLeft
-        // считается от другого предка и плашка «улетает» в середину экрана —
-        // подстраховываемся через getBoundingClientRect.
+        // offsetLeft корректен только при позиционированном <ul>;
+        // подстраховка через getBoundingClientRect на случай конфликта CSS.
         const positioned = window.getComputedStyle(list).position !== "static";
         let x = 0;
         let w = 0;
@@ -198,7 +285,6 @@ const Header = () => {
         }
         const dur = animate && !reducedMotion ? 0.45 : 0;
         if (!active) {
-          // Явно скрываем индикатор, если в группе нет активного пункта
           gsap.to(indicator, {
             opacity: 0,
             duration: animate && !reducedMotion ? 0.2 : 0,
@@ -211,7 +297,7 @@ const Header = () => {
           width: w,
           opacity: 1,
           duration: dur,
-          ease: "power3.inOut",
+          ease: "power3.out",
         });
       });
     };
@@ -226,16 +312,46 @@ const Header = () => {
 
     if (isFirstRun.current) {
       isFirstRun.current = false;
-      sync();
+      sync(false);
+      if (reducedMotion) return;
+
+      // Появление: панель мягко «опускается», пункты догоняют каскадом,
+      // индикатор проявляется последним. transform — только на .header__inner,
+      // чтобы не мешать position:sticky у самой шапки.
+      const inner = headerRef.current?.querySelector(".header__inner");
       const pills = Array.from(nav.querySelectorAll("[data-pill]"));
-      gsap.from(pills, {
-        y: -6,
-        opacity: 0,
-        duration: reducedMotion ? 0 : 0.4,
-        stagger: 0.03,
-        ease: "power3.out",
-        clearProps: "transform,opacity",
-      });
+      const indicators = groups.map((g) => g.indicator);
+
+      const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+      tl.fromTo(
+        inner,
+        { y: -12, autoAlpha: 0 },
+        {
+          y: 0,
+          autoAlpha: 1,
+          duration: 0.55,
+          clearProps: "transform,opacity,visibility",
+        },
+        0,
+      )
+        .fromTo(
+          pills,
+          { y: -8, autoAlpha: 0 },
+          {
+            y: 0,
+            autoAlpha: 1,
+            duration: 0.4,
+            stagger: 0.04,
+            clearProps: "transform,opacity,visibility",
+          },
+          0.12,
+        )
+        .fromTo(
+          indicators,
+          { autoAlpha: 0 },
+          { autoAlpha: 1, duration: 0.35 },
+          0.35,
+        );
       return;
     }
 
@@ -251,8 +367,6 @@ const Header = () => {
     let raf = 0;
     let lastW = window.innerWidth;
 
-    // При смене размера окна анимируем position/width сразу, иначе
-    // ResizeObserver + GSAP tween дают «прыжок» плашки в центр экрана.
     const onResize = () => {
       if (raf) return;
       raf = requestAnimationFrame(() => {
@@ -283,7 +397,7 @@ const Header = () => {
     if (!isMobile) {
       gsap.set([nav, overlay], { clearProps: "all" });
       gsap.set(nav.querySelectorAll("[data-pill]"), {
-        clearProps: "transform,opacity",
+        clearProps: "transform,opacity,visibility",
       });
       drawerTouched.current = false;
       return;
@@ -298,48 +412,54 @@ const Header = () => {
     }
 
     const items = nav.querySelectorAll("[data-pill]");
-    const tl = gsap.timeline();
 
     if (isMenuOpen) {
       drawerTouched.current = true;
-      tl.set([nav, overlay], { visibility: "visible" })
-        .fromTo(
-          overlay,
-          { opacity: 0 },
-          { opacity: 1, duration: 0.3 * k, ease: "none" },
-          0,
-        )
+      // visibility выставляем сразу (не в timeline): фокус должен быть
+      // переносим в уже видимый drawer
+      gsap.set([nav, overlay], { visibility: "visible" });
+
+      const tl = gsap.timeline();
+      tl.fromTo(
+        overlay,
+        { autoAlpha: 0 },
+        { autoAlpha: 1, duration: 0.25 * k, ease: "none" },
+        0,
+      )
         .fromTo(
           nav,
           { xPercent: 100 },
-          { xPercent: 0, duration: 0.45 * k, ease: "power3.out" },
+          { xPercent: 0, duration: 0.45 * k, ease: "power4.out" },
           0,
         )
         .fromTo(
           items,
-          { x: 24, opacity: 0 },
+          { y: 18, autoAlpha: 0 },
           {
-            x: 0,
-            opacity: 1,
+            y: 0,
+            autoAlpha: 1,
             duration: 0.3 * k,
-            stagger: 0.05 * k,
+            stagger: 0.045 * k,
             ease: "power2.out",
+            clearProps: "transform,opacity,visibility",
           },
-          0.12 * k,
+          0.1 * k,
         );
-    } else {
-      tl.to(nav, {
-        xPercent: 100,
-        duration: 0.32 * k,
-        ease: "power3.in",
-      })
-        .to(overlay, { opacity: 0, duration: 0.25 * k, ease: "none" }, 0)
-        .set([nav, overlay], { visibility: "hidden" });
+
+      // Перенос фокуса в drawer: SR объявляет диалог, Tab начинает с 1-го пункта
+      requestAnimationFrame(() => {
+        const first = nav.querySelector("a[href], button:not([disabled])");
+        first?.focus({ preventScroll: true });
+      });
+
+      return () => tl.kill();
     }
 
-    return () => {
-      tl.kill();
-    };
+    const tl = gsap.timeline();
+    tl.to(nav, { xPercent: 100, duration: 0.3 * k, ease: "power3.in" })
+      .to(overlay, { autoAlpha: 0, duration: 0.22 * k, ease: "none" }, 0)
+      .set([nav, overlay], { visibility: "hidden" });
+    return () => tl.kill();
   }, [isMenuOpen, isMobile, reducedMotion]);
 
   /* ---------- handlers ---------- */
@@ -355,19 +475,170 @@ const Header = () => {
     navigate("/");
   };
 
+  /* Бренд в панели — одна строка. «ПРОГРАММА ЛОЯЛЬНОСТИ» переехала в drawer:
+     в 10px капслоком на полупрозрачном фоне она была микротипографикой,
+     которую почти невозможно прочитать. */
   const brand = (
     <Link
       to="/"
+      ref={brandRef}
       className="brand"
       onClick={closeMenu}
       aria-label="Спортклуб ТПУ — на главную"
     >
       <img src={logo} alt="" className="brand__logo" width={44} height={44} />
-      <span className="brand__text">
-        <span className="brand__title">СПОРТКЛУБ ТПУ</span>
-        <span className="brand__subtitle">ПРОГРАММА ЛОЯЛЬНОСТИ</span>
-      </span>
+      <span className="brand__title">СПОРТКЛУБ ТПУ</span>
     </Link>
+  );
+
+  /* Drawer + overlay. На мобиле они рендерятся в document.body через portal.
+     Причина: backdrop-filter шапки создаёт containing block для
+     position:fixed-потомков — «фиксированный» drawer внутри шапки
+     позиционируется относительно ШАПКИ, а не viewport. Раньше при открытии
+     меню на глубоком скролле панель уезжала за верх экрана. Портал выносит
+     drawer из контекста шапки: он всегда честно фиксирован к viewport и
+     открывается у текущего экрана на любой глубине прокрутки.
+     На десктопе навигация остаётся обычным inline-элементом шапки. */
+  const navNode = (
+    <nav
+      className="main-nav"
+      id="primary-navigation"
+      ref={navRef}
+      aria-label="Основная навигация"
+      role={isMobile ? "dialog" : undefined}
+      aria-modal={isMobile && isMenuOpen ? "true" : undefined}
+    >
+      {/* Шапка drawer: брендблок + кнопка закрытия. Панель перекрывает
+          бургер в правом верхнем углу, поэтому «крестик» живёт внутри
+          самой панели — на том же месте, где был бургер. */}
+      <div className="drawer-head">
+        <div className="drawer-brand">
+          <img
+            src={logo}
+            alt=""
+            className="drawer-brand__logo"
+            width={40}
+            height={40}
+          />
+          <span className="drawer-brand__text">
+            <span className="drawer-brand__title">СПОРТКЛУБ ТПУ</span>
+            <span className="drawer-brand__subtitle">Программа лояльности</span>
+          </span>
+        </div>
+        <button
+          type="button"
+          className="drawer-close"
+          onClick={closeMenu}
+          aria-label="Закрыть меню"
+        >
+          <svg
+            width={22}
+            height={22}
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path
+              d="M6 6l12 12M18 6 6 18"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+            />
+          </svg>
+        </button>
+      </div>
+
+      {/* Разделы сайта */}
+      <ul className="nav-group nav-group--main" ref={mainGroupRef}>
+        <li
+          className="nav-indicator"
+          ref={mainIndicatorRef}
+          aria-hidden="true"
+        />
+        {NAV_ITEMS.map((item) => (
+          <li className="nav-group__item" key={item.to}>
+            <Pill
+              to={item.to}
+              label={item.label}
+              active={item.isActive(location.pathname)}
+              onClick={closeMenu}
+            />
+          </li>
+        ))}
+      </ul>
+
+      {/* Личные действия */}
+      <ul className="nav-group nav-group--actions" ref={actionsGroupRef}>
+        <li
+          className="nav-indicator"
+          ref={actionsIndicatorRef}
+          aria-hidden="true"
+        />
+        <li className="nav-group__item">
+          <Pill
+            to="/favorites"
+            icon="icon-heart"
+            label="Мои мероприятия"
+            active={location.pathname === "/favorites"}
+            onClick={closeMenu}
+          />
+        </li>
+        <li className="nav-group__item">
+          <Pill
+            to="/cart"
+            icon="icon-cart"
+            label="Корзина"
+            active={location.pathname === "/cart"}
+            badge={cartCount}
+            onClick={closeMenu}
+          />
+        </li>
+        <li className="nav-group__item">
+          {isAuthenticated ? (
+            <Pill
+              to="/profile"
+              icon="icon-profile"
+              label="Профиль"
+              active={location.pathname === "/profile"}
+              onClick={closeMenu}
+            />
+          ) : (
+            <button
+              type="button"
+              data-pill=""
+              className="pill pill--cta"
+              onClick={handleLoginClick}
+              aria-label="Войти"
+              data-tip="Войти"
+            >
+              <span className="pill__icon" aria-hidden="true">
+                <svg
+                  className="pill__svg"
+                  width={22}
+                  height={22}
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <use href="#icon-login" />
+                </svg>
+              </span>
+              <span className="pill__label">Войти</span>
+            </button>
+          )}
+        </li>
+      </ul>
+    </nav>
+  );
+
+  const overlayNode = (
+    <div
+      className="menu-overlay"
+      ref={overlayRef}
+      onClick={closeMenu}
+      aria-hidden="true"
+    />
   );
 
   if (loading) {
@@ -405,104 +676,27 @@ const Header = () => {
             <span className="burger__line" />
           </button>
 
-          <nav
-            className="main-nav"
-            id="primary-navigation"
-            ref={navRef}
-            aria-label="Основная навигация"
-          >
-            {/* Разделы сайта */}
-            <ul className="nav-group nav-group--main" ref={mainGroupRef}>
-              <li
-                className="nav-indicator"
-                ref={mainIndicatorRef}
-                aria-hidden="true"
-              />
-              {NAV_ITEMS.map((item) => (
-                <li className="nav-group__item" key={item.to}>
-                  <Pill
-                    to={item.to}
-                    icon={item.icon}
-                    label={item.label}
-                    active={item.isActive(location.pathname)}
-                    onClick={closeMenu}
-                  />
-                </li>
-              ))}
-            </ul>
-
-            {/* Личные действия */}
-            <ul className="nav-group nav-group--actions" ref={actionsGroupRef}>
-              <li
-                className="nav-indicator"
-                ref={actionsIndicatorRef}
-                aria-hidden="true"
-              />
-              <li className="nav-group__item">
-                <Pill
-                  to="/favorites"
-                  icon="icon-heart"
-                  label="Мои мероприятия"
-                  active={location.pathname === "/favorites"}
-                  onClick={closeMenu}
-                />
-              </li>
-              <li className="nav-group__item">
-                <Pill
-                  to="/cart"
-                  icon="icon-cart"
-                  label="Корзина"
-                  active={location.pathname === "/cart"}
-                  badge={cartCount}
-                  onClick={closeMenu}
-                />
-              </li>
-              <li className="nav-group__item">
-                {isAuthenticated ? (
-                  <Pill
-                    to="/profile"
-                    icon="icon-profile"
-                    label="Профиль"
-                    active={location.pathname === "/profile"}
-                    onClick={closeMenu}
-                  />
-                ) : (
-                  <button
-                    type="button"
-                    data-pill=""
-                    className="pill"
-                    onClick={handleLoginClick}
-                    aria-label="Войти"
-                    title="Войти"
-                  >
-                    <span className="pill__icon">
-                      <svg
-                        className="pill__svg"
-                        width={22}
-                        height={22}
-                        viewBox="0 0 24 24"
-                        aria-hidden="true"
-                        focusable="false"
-                      >
-                        <use href="#icon-login" />
-                      </svg>
-                    </span>
-                    <span className="pill__label">Войти</span>
-                  </button>
-                )}
-              </li>
-            </ul>
-          </nav>
-
-          <div
-            className="menu-overlay"
-            ref={overlayRef}
-            onClick={closeMenu}
-            aria-hidden="true"
-          />
+          {/* На мобиле drawer + overlay живут в document.body (portal) —
+              см. комментарий у navNode. На десктопе — inline в шапке. */}
+          {isMobile ? (
+            createPortal(
+              <>
+                {overlayNode}
+                {navNode}
+              </>,
+              document.body,
+            )
+          ) : (
+            <>
+              {navNode}
+              {overlayNode}
+            </>
+          )}
         </div>
       </div>
 
+      {/* Спрайт оставлен полностью: symbol-и могут использоваться
+          другими компонентами через <use href="#icon-..."> */}
       <IconSprite />
     </header>
   );
@@ -551,6 +745,12 @@ const IconSprite = () => (
       <symbol id="icon-login" viewBox="0 0 24 24">
         <path
           d="M10.09 15.59 11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59zM19 3H5c-1.11 0-2 .9-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
+          fill="currentColor"
+        />
+      </symbol>
+      <symbol id="icon-rules" viewBox="0 0 24 24">
+        <path
+          d="M7.21 15 5 22l7-3 7 3-2.21-7M12 2a6 6 0 1 0 0 12 6 6 0 0 0 0-12zm0 3.2.9 1.83 2.02.3-1.46 1.42.34 2.01L12 9.8l-1.8.95.34-2.01-1.46-1.43 2.02-.29L12 5.2z"
           fill="currentColor"
         />
       </symbol>

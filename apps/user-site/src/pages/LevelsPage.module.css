@@ -1,0 +1,432 @@
+/* LevelsPage — публичная страница «Правила и уровни» */
+
+.page {
+  font-family: "Kontora", sans-serif;
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* ---------- Шапка ---------- */
+.hero {
+  background: linear-gradient(135deg, #003466 0%, #0056b3 100%);
+  border-radius: 24px;
+  padding: clamp(28px, 5vw, 48px);
+  color: #fff;
+}
+
+.heroKicker {
+  margin: 0 0 10px;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.heroTitle {
+  margin: 0 0 14px;
+  font-size: clamp(30px, 5vw, 44px);
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.heroText {
+  margin: 0;
+  max-width: 640px;
+  font-size: clamp(14px, 2vw, 16px);
+  line-height: 1.6;
+  opacity: 0.92;
+}
+
+/* ---------- Личный прогресс ---------- */
+.personalStrip {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  background: #ffffff;
+  border: 1px solid rgba(0, 52, 102, 0.1);
+  border-radius: 18px;
+  padding: 16px 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+.personalLevel {
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.personalInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.personalInfo strong {
+  color: #003466;
+  font-size: 16px;
+}
+
+.personalInfo span {
+  color: #6c757d;
+  font-size: 13.5px;
+}
+
+.personalLink {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0056b3;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.personalLink:hover {
+  text-decoration: underline;
+}
+
+/* ---------- Секции ---------- */
+.section {
+  background: #ffffff;
+  border: 1px solid rgba(0, 52, 102, 0.08);
+  border-radius: 20px;
+  padding: clamp(20px, 3.5vw, 32px);
+  box-shadow: var(--shadow-sm);
+}
+
+.sectionTitle {
+  margin: 0 0 8px;
+  font-size: clamp(21px, 3vw, 26px);
+  color: #003466;
+  line-height: 1.25;
+}
+
+.sectionText {
+  margin: 0 0 18px;
+  color: #495057;
+  font-size: 15px;
+  line-height: 1.6;
+  max-width: 720px;
+}
+
+.sectionNote {
+  margin: 14px 0 0;
+  color: #6c757d;
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+
+/* ---------- Таблицы ---------- */
+.tableWrap {
+  overflow-x: auto;
+  border-radius: 14px;
+  border: 1px solid #e9ecef;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 560px;
+  font-size: 14.5px;
+}
+
+.tableCaption {
+  caption-side: top;
+  text-align: left;
+  padding: 14px 16px 4px;
+  font-size: 13px;
+  color: #6c757d;
+}
+
+.table thead th {
+  background: #f2f6fb;
+  color: #003466;
+  text-align: left;
+  padding: 12px 16px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid #dbe4ee;
+  white-space: nowrap;
+}
+
+.table tbody td,
+.table tbody th {
+  padding: 13px 16px;
+  border-bottom: 1px solid #eef1f5;
+  color: #333;
+  vertical-align: middle;
+}
+
+.table tbody tr:last-child td,
+.table tbody tr:last-child th {
+  border-bottom: none;
+}
+
+.table tbody tr:hover {
+  background: #f8fafd;
+}
+
+.levelCell {
+  font-weight: 700;
+  color: #003466 !important;
+  white-space: nowrap;
+}
+
+.levelDot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 10px;
+  vertical-align: baseline;
+}
+
+.youTag {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #e8f5e9;
+  color: #1f8b3b;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.numCell {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.rowHeadCell {
+  color: #003466 !important;
+  font-weight: 600;
+}
+
+.rowHeadHint {
+  display: block;
+  margin-top: 3px;
+  font-size: 12.5px;
+  font-weight: 400;
+  color: #6c757d;
+  white-space: normal;
+}
+
+.matrixCell {
+  text-align: center;
+  font-size: 17px;
+  font-weight: 700;
+  color: #003466;
+  min-width: 90px;
+}
+
+/* Текущий уровень пользователя подсвечивается */
+.rowDone {
+  background: #f6fbf7;
+}
+
+.rowCurrent {
+  background: #e9f4ec;
+  box-shadow: inset 3px 0 0 #28be46;
+}
+
+/* ---------- Бонусы ---------- */
+.bonusGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.bonusCard {
+  background: linear-gradient(135deg, #f2f7fd, #eef3f9);
+  border: 1px solid rgba(0, 52, 102, 0.1);
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+}
+
+.bonusValue {
+  display: block;
+  font-size: 34px;
+  font-weight: 700;
+  color: #0056b3;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.bonusTitle {
+  margin: 0 0 6px;
+  font-size: 16px;
+  color: #003466;
+}
+
+.bonusHint {
+  margin: 0;
+  font-size: 13px;
+  color: #6c757d;
+  line-height: 1.5;
+}
+
+/* ---------- Физ-ра ---------- */
+.peList {
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.peItem {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 14.5px;
+  color: #333;
+}
+
+.pePoint {
+  flex: none;
+  font-weight: 700;
+  color: #0056b3;
+  font-size: 13px;
+}
+
+.peFacts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.peFact {
+  background: #fff8e6;
+  border: 1px solid rgba(212, 160, 23, 0.3);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.peFact strong {
+  display: block;
+  margin-bottom: 5px;
+  color: #8a6d1a;
+  font-size: 14px;
+}
+
+.peFact span {
+  font-size: 13.5px;
+  color: #5c4d1e;
+  line-height: 1.55;
+}
+
+/* ---------- Регламент ---------- */
+.reglament {
+  background: #f8f9fa;
+  border-radius: 16px;
+  padding: clamp(16px, 3vw, 26px);
+}
+
+.reglament h3 {
+  margin: 18px 0 8px;
+  font-size: 16.5px;
+  color: #003466;
+}
+
+.reglament h3:first-child {
+  margin-top: 0;
+}
+
+.reglament p {
+  margin: 0 0 10px;
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: #495057;
+}
+
+/* ---------- CTA ---------- */
+.ctaSection {
+  text-align: center;
+  background: linear-gradient(135deg, #003466 0%, #0056b3 100%);
+  border-radius: 24px;
+  padding: clamp(28px, 5vw, 44px);
+  color: #fff;
+}
+
+.ctaSection h2 {
+  margin: 0 0 10px;
+  font-size: clamp(22px, 3.5vw, 30px);
+}
+
+.ctaSection p {
+  margin: 0 auto 20px;
+  max-width: 480px;
+  opacity: 0.92;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.ctaBtn {
+  display: inline-block;
+  padding: 13px 30px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #003466;
+  font-weight: 700;
+  font-size: 15px;
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ctaBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+}
+
+/* ---------- Адаптивность ---------- */
+@media (max-width: 860px) {
+  .bonusGrid,
+  .peFacts {
+    grid-template-columns: 1fr;
+  }
+
+  .personalStrip {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .personalLink {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .page {
+    gap: 18px;
+  }
+
+  .table {
+    font-size: 13.5px;
+  }
+
+  .matrixCell {
+    min-width: 64px;
+    font-size: 15px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ctaBtn {
+    transition: none;
+  }
+}

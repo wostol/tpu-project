@@ -1,8 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import styles from "./HomePage.module.css";
 import useAuth from "../auth/useAuth";
 import heroImage from "../image/people.jpg";
+
+/* GSAP + ScrollTrigger — скролл-анимации и parallax.
+   gsap уже подключен в проекте (Header, ExitButton) — расширяем,
+   а не добавляем новое. При prefers-reduced-motion ничего не анимируем. */
+gsap.registerPlugin(ScrollTrigger);
 
 /* ---------- inline-SVG иконки (замена lucide-react) ---------- */
 const PATHS = {
@@ -220,14 +227,59 @@ const questions = [
 export default function HomePage() {
   const { login } = useAuth();
   const [openFaq, setOpenFaq] = useState(0);
+  const rootRef = useRef(null);
 
   const handleLogin = () => {
     sessionStorage.setItem("returnUrl", "/events");
     login();
   };
 
+  /* ---------- GSAP ScrollTrigger: parallax hero + reveal секций ---------- */
+  useEffect(() => {
+    const reduced = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    if (reduced) return undefined;
+
+    const ctx = gsap.context((self) => {
+      const q = self.selector;
+
+      /* Parallax: фон hero медленно уезжает вниз, пока hero скроллится */
+      gsap.to(q(`.${styles.heroBgImg}`), {
+        yPercent: 16,
+        ease: "none",
+        scrollTrigger: {
+          trigger: q(`.${styles.hero}`)[0],
+          start: "top top",
+          end: "bottom top",
+          scrub: true,
+        },
+      });
+
+      /* Reveal: элементы секций поднимаются и проявляются при входе в кадр */
+      q("[data-reveal]").forEach((el) => {
+        gsap.from(el, {
+          y: 26,
+          autoAlpha: 0,
+          duration: 0.7,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: el,
+            start: "top 88%",
+            once: true,
+          },
+        });
+      });
+    }, rootRef);
+
+    return () => ctx.revert();
+  }, []);
+
   return (
-    <div className={styles.loyalty}>
+    /* page-home — глобальный (не module) класс: App.css снимает с
+       .container-page отступы на главной, чтобы hero шёл «от края
+       до края» под стеклянной шапкой */
+    <div className={`${styles.loyalty} page-home`} ref={rootRef}>
       <style>{`
         html { scroll-behavior: smooth; }
         @keyframes rise-in { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
@@ -310,7 +362,11 @@ export default function HomePage() {
               </div>
               <div className={styles.benefitsRight}>
                 {benefits.map(({ number, icon, title, copy }) => (
-                  <article key={number} className={styles.benefitCard}>
+                  <article
+                    key={number}
+                    className={styles.benefitCard}
+                    data-reveal
+                  >
                     <div className={styles.benefitHead}>
                       <span className={styles.benefitIconWrap}>
                         <Icon name={icon} size={18} />
@@ -332,7 +388,7 @@ export default function HomePage() {
             <h2 className={styles.titleSerif}>Как это работает</h2>
             <ol className={styles.howList}>
               {steps.map(({ n, title, text, icon }) => (
-                <li key={n} className={styles.stepItem}>
+                <li key={n} className={styles.stepItem} data-reveal>
                   <div className={styles.stepHead}>
                     <span className={styles.stepNum}>{n}</span>
                     <Icon name={icon} size={19} className={styles.stepIcon} />
@@ -351,7 +407,11 @@ export default function HomePage() {
             <h2 className={styles.titleSerif}>Ближайшие мероприятия</h2>
             <div className={styles.eventsGrid}>
               {events.map((event, index) => (
-                <article key={event.title} className={styles.eventCard}>
+                <article
+                  key={event.title}
+                  className={styles.eventCard}
+                  data-reveal
+                >
                   <div
                     className={`${styles.eventBanner} ${index === 1 ? styles.eventBannerAlt : ""}`}
                   >
@@ -398,7 +458,11 @@ export default function HomePage() {
                 </p>
                 <ol className={styles.levelsList}>
                   {levels.map(({ threshold, bonus }, i) => (
-                    <li key={threshold} className={styles.levelItem}>
+                    <li
+                      key={threshold}
+                      className={styles.levelItem}
+                      data-reveal
+                    >
                       <span
                         className={`${styles.levelNum} ${i === levels.length - 1 ? styles.levelNumLast : ""}`}
                       >
@@ -434,7 +498,7 @@ export default function HomePage() {
             </div>
             <div className={styles.merchGrid}>
               {merch.map(({ icon, name }, index) => (
-                <article key={name} className={styles.merchCard}>
+                <article key={name} className={styles.merchCard} data-reveal>
                   <div
                     className={`${styles.merchTile} ${index % 2 === 0 ? "" : styles.merchTileAlt}`}
                   >

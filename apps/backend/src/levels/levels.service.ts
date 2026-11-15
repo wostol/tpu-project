@@ -14,8 +14,10 @@ import { LevelResponseDto } from "./dto/level-response.dto";
  *   - HTTP-слой (это LevelsController)
  *   - Начисление баллов (происходит при обработке событий)
  *   - Вычисление текущего уровня пользователя:
- *     фронт сравнивает User.totalPoints с порогами уровней сам,
- *     поэтому отдельный GET /levels/me не нужен.
+ *     уровень НЕ хранится в User, а считается динамически как
+ *     «последний уровень, чей minPoints ≤ totalPoints». Фронт делает
+ *     это сам на данных GET /levels + User.totalPoints, поэтому
+ *     отдельный GET /levels/me не нужен (см. INTEGRATION.md, п. 6).
  *
  * Workflow: Controller → Service → PrismaService (прямой доступ,
  * как в UsersService — данных мало, Repository не требуется).
@@ -46,7 +48,9 @@ export class LevelsService {
 
   /**
    * Маппинг Prisma-модели Level в LevelResponseDto.
-   * Фронт ждёт minPoints (camelCase); поле description может быть null.
+   * Фронт ждёт minPoints (camelCase); description и prize могут быть null.
+   * bonusPercent и prize — колонки таблицы Level после расширения схемы:
+   * фронт рендерит колонки «Бонус к физ-ре» и «Приз» прямо из них.
    */
   private toResponse(level: Level): LevelResponseDto {
     return {
@@ -54,6 +58,8 @@ export class LevelsService {
       name: level.name,
       minPoints: level.minPoints,
       description: level.description,
+      bonusPercent: level.bonusPercent,
+      prize: level.prize,
       color: level.color,
     };
   }
