@@ -5,92 +5,118 @@
 // сначала пытаются получить уровни из API (GET /levels), а при ошибке
 // используют LEVELS_FALLBACK отсюда. Так публичная страница правил
 // всегда заполнена, даже когда бэкенд недоступен.
+//
+// КОНТРАКТ ПОЛЕЙ — camelCase, ровно как в модели Prisma:
+//   Level { id, name, minPoints, description, bonusPercent, prize, color }
+// Никаких min_points / bonus_percent во фронте: всё, что читает уровни,
+// обязано использовать minPoints / bonusPercent. Баланс пользователя —
+// только User.totalPoints (поля user.points в БД нет).
 
 /*
- * Шесть уровней программы «Сибирские Львы». Пороги и проценты совпадают
- * с данными главной страницы (HomePage) и уведомлений:
- *   - лестница «от Бронзового до Сибирского льва» — копия с главной;
- *   - «Золотой лев» — 5-й уровень (levelId: 5 в уведомлении о level_up);
- *   - скидка 10% в ФОЦ на верхнем уровне (блок «Награды» на главной).
+ * Шесть уровней программы «Сибирские Львы» — Таблица уровней (эталон):
+ *
+ *   Уровень              | Баллы для перехода | Приз за переход              | Бонусы
+ *   Регистрация в клубе  | 0                  | —                            | 2% баллов с мероприятий дублируются в баллы по физической культуре (касается только п. 1, некоторых мероприятий п. 4, мероприятий п. 5–7)
+ *   V «Бронзовый лев»    | 500                | Ручка                        | 7% (тот же текст)
+ *   IV «Серебряный лев»  | 1200               | Блокнот                      | 10% (тот же текст)
+ *   III «Золотой лев»    | 2500               | Сумка для обуви / Бутылка / Кепка | 15% (тот же текст)
+ *   II «Платиновый лев»  | 3500               | Футболка                     | 17% (тот же текст) + скидка 10% на услуги ФОЦ (бассейн, тренажёрный зал)
+ *   I «Сибирский лев»    | 5000               | Толстовка                    | 20% (тот же текст)
+ *
+ * Римская ступень (V…I) в name не хранится — она вычисляется по позиции
+ * уровня в лестнице (см. getLevelTier в Profile/tabs/pointsUtils.js).
+ * Текст бонуса лежит в description (колонка Level.description в БД).
  */
+
+// Единый текст бонуса к физ-ре — одинаков для всех уровней, меняется только %
+const peBonusText = (percent) =>
+  `${percent}% баллов с мероприятий дублируются в баллы по физической культуре (касается только п. 1, некоторых мероприятий п. 4, мероприятий п. 5–7)`;
+
+// Скидка ФОЦ — только у уровня «Платиновый лев»
+const FOZ_DISCOUNT_TEXT =
+  "Скидка 10% на услуги физкультурно-оздоровительного центра (бассейн, тренажёрный зал)";
+
 export const LEVELS_FALLBACK = [
   {
     id: 1,
-    name: "Львёнок",
-    min_points: 0,
-    bonus_percent: 2,
+    name: "Регистрация в клубе",
+    minPoints: 0,
+    bonusPercent: 2,
     color: "#5aa05a",
-    prize: "Стартовый значок в профиле",
-    privileges: ["Стартовый значок в профиле"],
+    prize: null,
+    description: peBonusText(2),
   },
   {
     id: 2,
-    name: "Медный лев",
-    min_points: 500,
-    bonus_percent: 7,
+    name: "Бронзовый лев",
+    minPoints: 500,
+    bonusPercent: 7,
     color: "#b87333",
-    prize: "Приоритетная запись на мероприятия",
-    privileges: ["Приоритетная запись на мероприятия"],
+    prize: "Ручка",
+    description: peBonusText(7),
   },
   {
     id: 3,
-    name: "Бронзовый лев",
-    min_points: 1200,
-    bonus_percent: 10,
-    color: "#cd7f32",
-    prize: "Доступ к закрытым мероприятиям клуба",
-    privileges: ["Доступ к закрытым мероприятиям клуба"],
+    name: "Серебряный лев",
+    minPoints: 1200,
+    bonusPercent: 10,
+    color: "#9ea7b3",
+    prize: "Блокнот",
+    description: peBonusText(10),
   },
   {
     id: 4,
-    name: "Серебряный лев",
-    min_points: 2500,
-    bonus_percent: 15,
-    color: "#9ea7b3",
-    prize: "Фирменный мерч спортклуба",
-    privileges: ["Фирменный мерч спортклуба"],
+    name: "Золотой лев",
+    minPoints: 2500,
+    bonusPercent: 15,
+    color: "#d4a017",
+    prize: "Сумка для обуви / Бутылка / Кепка",
+    description: peBonusText(15),
   },
   {
     id: 5,
-    name: "Золотой лев",
-    min_points: 3500,
-    bonus_percent: 17,
-    color: "#d4a017",
-    prize: "Скидка 10% в магазине мерча",
-    privileges: ["Скидка 10% в магазине мерча"],
+    name: "Платиновый лев",
+    minPoints: 3500,
+    bonusPercent: 17,
+    color: "#7f8c9b",
+    prize: "Футболка",
+    description: `${peBonusText(17)} ${FOZ_DISCOUNT_TEXT}`,
   },
   {
     id: 6,
     name: "Сибирский лев",
-    min_points: 5000,
-    bonus_percent: 20,
+    minPoints: 5000,
+    bonusPercent: 20,
     color: "#003466",
-    prize: "Скидка 10% в ФОЦ ТПУ",
-    privileges: ["Скидка 10% в ФОЦ ТПУ"],
+    prize: "Толстовка",
+    description: peBonusText(20),
   },
 ];
 
 /*
- * Приводим ответ API к единому виду. Бэкенд отдаёт поля
- * id / name / min_points / color / description / bonus_percent / privileges.
- * Столбец «приз» берём из privileges[0], при пустом — из фолбэка по id.
+ * Приводим ответ API к единому виду. Контракт бэкенда — camelCase
+ * (id / name / minPoints / bonusPercent / color / description / prize),
+ * как в модели Prisma. Для подстраховки принимаем и старые snake_case
+ * поля (min_points, bonus_percent) — если где-то остался старый формат,
+ * интерфейс не сломается, а не покажет undefined.
+ * Колонку «приз» при пустом prize берём из privileges[0] (старый формат).
  */
 export const normalizeLevel = (raw, index = 0) => {
   const fallback = LEVELS_FALLBACK[index] || {};
   return {
-    id: raw.id ?? index + 1,
-    name: raw.name || fallback.name || `Уровень ${index + 1}`,
-    min_points: Number(
-      raw.min_points ?? raw.minPoints ?? fallback.min_points ?? 0,
+    id: raw?.id ?? fallback.id ?? index + 1,
+    name: raw?.name || fallback.name || `Уровень ${index + 1}`,
+    minPoints: Number(
+      raw?.minPoints ?? raw?.min_points ?? fallback.minPoints ?? 0,
     ),
-    bonus_percent: Number(
-      raw.bonus_percent ?? raw.bonusPercent ?? fallback.bonus_percent ?? 0,
+    bonusPercent: Number(
+      raw?.bonusPercent ?? raw?.bonus_percent ?? fallback.bonusPercent ?? 0,
     ),
-    color: raw.color || fallback.color || "#003466",
-    description: raw.description || "",
+    color: raw?.color || fallback.color || "#003466",
+    description: raw?.description || fallback.description || "",
     prize:
-      raw.prize ||
-      (Array.isArray(raw.privileges) && raw.privileges.length > 0
+      raw?.prize ||
+      (Array.isArray(raw?.privileges) && raw.privileges.length > 0
         ? raw.privileges[0]
         : fallback.prize || ""),
   };
@@ -99,7 +125,7 @@ export const normalizeLevel = (raw, index = 0) => {
 export const normalizeLevels = (data) =>
   (Array.isArray(data) ? data : [])
     .map(normalizeLevel)
-    .sort((a, b) => a.min_points - b.min_points);
+    .sort((a, b) => a.minPoints - b.minPoints);
 
 /*
  * Матрица начислений: тип события × результат.

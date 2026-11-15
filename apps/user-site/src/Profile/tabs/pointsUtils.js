@@ -95,15 +95,19 @@ export const formatEventDate = (iso) => {
 /*
  * Родительный падеж названия уровня — для строки
  * «700 баллов до Золотого льва»:
- *   «Золотой лев»    → «Золотого льва»
- *   «Медный лев»     → «Медного льва»
- *   «Сибирский лев»  → «Сибирского льва»
- *   «Львёнок»        → «Львёнка»
- *   «Платина»        → «Платины»
+ *   «Золотой лев»           → «Золотого льва»
+ *   «Медный лев»            → «Медного льва»
+ *   «Платиновый лев»        → «Платинового льва»
+ *   «Сибирский лев»         → «Сибирского льва»
+ *   «Регистрация в клубе»   → «Регистрации в клубе»
  */
 export const levelNameGenitive = (name) => {
   if (!name) return "следующего уровня";
   const n = String(name).trim();
+  // Стартовый уровень Таблицы №2: «Регистрация в клубе» → «Регистрации в клубе»
+  if (/^регистрация/i.test(n)) {
+    return n.replace(/^регистрация/i, "Регистрации");
+  }
   if (/львёнок$/i.test(n)) {
     const idx = n.search(/львёнок$/i);
     const head = n.slice(0, idx);
@@ -128,3 +132,27 @@ export const levelNameGenitive = (name) => {
 // Склонение для числительных: «осталось N баллов»
 export const pointsToLevelText = (n, levelName) =>
   `${n} ${pluralizePoints(n)} до ${levelNameGenitive(levelName)}`;
+
+const ROMAN_NUMERALS = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII"];
+
+/*
+ * Ступень уровня на лестнице по Таблице уровней программы:
+ * «Регистрация в клубе» — стартовая ступень без цифры, дальше
+ * римские цифры от V («Бронзовый лев») до I («Сибирский лев»).
+ *
+ * ВАЖНО: ступень считается по позиции уровня в списке, отсортированном
+ * по minPoints, а НЕ по id из БД — id не гарантированно совпадает со
+ * ступенью, из-за чего на «Обзоре» показывался «уровень 5».
+ * Возвращает "" для стартового уровня (вне лестницы римских цифр)
+ * или если список уровней ещё не загружен.
+ */
+export const getLevelTier = (level, allLevels) => {
+  if (!level || level.id === undefined || level.id === null) return "";
+  const sorted = [...(allLevels || [])]
+    .filter((l) => Number.isFinite(l?.minPoints))
+    .sort((a, b) => a.minPoints - b.minPoints);
+  const idx = sorted.findIndex((l) => l.id === level.id);
+  if (idx <= 0) return ""; // стартовый уровень «Регистрация в клубе»
+  const value = sorted.length - idx;
+  return ROMAN_NUMERALS[value - 1] || "";
+};

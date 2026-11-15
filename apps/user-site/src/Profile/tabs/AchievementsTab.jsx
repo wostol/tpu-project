@@ -1,7 +1,8 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import styles from "./ProfileTabs.module.css";
-import { pluralizePoints } from "./pointsUtils";
+import { useProfileData } from "../ProfileDataContext";
+import { pluralizePoints, getLevelTier } from "./pointsUtils";
 
 const RulesIcon = () => (
   <svg
@@ -27,23 +28,28 @@ const RulesIcon = () => (
  *  - мост к публичной странице «Правила и уровни» (/levels), где лежат
  *    таблицы начислений и регламент — правила одинаковы для всех,
  *    здесь показан только личный прогресс по ним.
+ *
+ * Данные берутся из ProfileDataContext (useProfileData) — пропсы не нужны.
+ *
+ * ИСПРАВЛЕННЫЙ КРАШ (AchievementsTab.jsx:107 «Cannot read properties of
+ * undefined (reading 'toLocaleString')»): вкладка читала level.minPoints,
+ * хотя нормализованные уровни отдавали snake_case min_points, поэтому
+ * minPoints был undefined. Теперь поля уровней везде camelCase (minPoints,
+ * bonusPercent — как в модели Prisma и в GET /levels), плюс числовые поля
+ * подстрахованы значениями по умолчанию — вкладка не упадёт, даже если
+ * бэкенд вернёт неполный объект уровня.
  */
-const AchievementsTab = ({
-  achievementsData,
-  allLevels,
-  totalPoints,
-  currentLevel,
-}) => {
+const AchievementsTab = () => {
+  const { totalPoints, currentLevel, allLevels, achievements } =
+    useProfileData();
+
+  const levels = Array.isArray(allLevels) ? allLevels : [];
+  const achievementsList = Array.isArray(achievements) ? achievements : [];
+
   // Определяем статус для каждого уровня
   const getLevelStatus = (levelMinPoints) => {
     if (totalPoints >= levelMinPoints) return "completed";
     return "locked";
-  };
-
-  // Находим следующий уровень
-  const getNextLevelMinPoints = () => {
-    const nextLevel = allLevels.find((level) => level.minPoints > totalPoints);
-    return nextLevel ? nextLevel.minPoints : totalPoints + 100;
   };
 
   return (
@@ -52,16 +58,24 @@ const AchievementsTab = ({
       <div className={styles.levelsSection}>
         <h3 className={styles.levelsTitle}>Все уровни</h3>
         <div className={styles.levelsList}>
-          {allLevels.map((level) => {
-            const status = getLevelStatus(level.minPoints);
-            const isCurrent = currentLevel?.id === level.id;
+          {levels.map((level, index) => {
+            // Подстраховка: числовые поля могут отсутствовать в ответе API
+            const minPoints = Number(level?.minPoints ?? 0);
+            const bonusPercent = Number(level?.bonusPercent ?? 0);
+            const status = getLevelStatus(minPoints);
+            const isCurrent = currentLevel?.id === level?.id;
             const pointsNeeded =
-              level.minPoints > totalPoints ? level.minPoints - totalPoints : 0;
+              minPoints > totalPoints ? minPoints - totalPoints : 0;
+
+            // Ступень уровня на лестнице: римская цифра V…I из Таблицы
+            // уровней (считается по позиции среди уровней, НЕ по id из БД);
+            // для стартового «Регистрация в клубе» цифры нет — рисуем звезду
+            const tier = getLevelTier(level, levels);
 
             // Определяем цвет для кружка уровня
             let circleBackground;
             if (status === "completed") {
-              circleBackground = `linear-gradient(135deg, ${level.color || "#003466"}, ${level.color || "#0056b3"})`;
+              circleBackground = `linear-gradient(135deg, ${level?.color || "#003466"}, ${level?.color || "#0056b3"})`;
             } else if (isCurrent) {
               circleBackground = `linear-gradient(135deg, #28a745, #20c997)`;
             } else {
@@ -70,7 +84,7 @@ const AchievementsTab = ({
 
             return (
               <div
-                key={level.id}
+                key={level?.id ?? index}
                 className={`${styles.levelItem} ${styles[status]} ${isCurrent ? styles.current : ""}`}
               >
                 <div
@@ -78,11 +92,13 @@ const AchievementsTab = ({
                   style={{ background: circleBackground }}
                   aria-hidden="true"
                 >
-                  {level.id}
+                  {tier || "★"}
                 </div>
                 <div className={styles.levelInfoBlock}>
                   <div className={styles.levelHeader}>
-                    <h4 className={styles.levelName}>{level.name}</h4>
+                    <h4 className={styles.levelName}>
+                      {level?.name || `Уровень ${index + 1}`}
+                    </h4>
                     {status === "completed" && (
                       <span
                         className={`${styles.levelBadge} ${styles.completed}`}
@@ -104,16 +120,16 @@ const AchievementsTab = ({
                     )}
                   </div>
                   <p className={styles.levelPoints}>
-                    от {level.minPoints.toLocaleString("ru-RU")}{" "}
-                    {pluralizePoints(level.minPoints)} · бонус к физ-ре +
-                    {level.bonus_percent}%
+                    от {minPoints.toLocaleString("ru-RU")}{" "}
+                    {pluralizePoints(minPoints)} · бонус к физ-ре +
+                    {bonusPercent}%
                   </p>
-                  {level.prize && (
+                  {level?.prize && (
                     <p className={styles.levelDescription}>
                       Награда: {level.prize}
                     </p>
                   )}
-                  {!level.prize && level.description && (
+                  {level?.description && (
                     <p className={styles.levelDescription}>
                       {level.description}
                     </p>
@@ -144,7 +160,7 @@ const AchievementsTab = ({
 
       {/* Сетка достижений */}
       <div className={styles.achievementsGrid}>
-        {achievementsData.map((achievement) => (
+        {achievementsList.map((achievement) => (
           <div
             key={achievement.id}
             className={`${styles.achievementCard} ${!achievement.achieved ? styles.locked : ""}`}

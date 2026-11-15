@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import styles from "./ProfileTabs.module.css";
 import PointsHistory from "./PointsHistory";
+import { useProfileData } from "../ProfileDataContext";
 import { pluralizePoints } from "./pointsUtils";
 
 const FILTERS = [
@@ -13,10 +14,16 @@ const FILTERS = [
  * Вкладка «Баллы» — полная история транзакций с фильтрами.
  * Карточка уровня и прогресс переехали во вкладку «Обзор»,
  * привилегии — во вкладку «Достижения».
+ *
+ * Данные (totalPoints, currentLevel) берутся из ProfileDataContext —
+ * пропсы не нужны. Поля уровня читаются в camelCase (bonusPercent),
+ * как в модели Prisma; поле user.points в БД отсутствует —
+ * баланс всегда приходит из User.totalPoints.
  */
-const PointsTab = ({ totalPoints, currentLevel }) => {
+const PointsTab = () => {
+  const { totalPoints, currentLevel } = useProfileData();
   const [filter, setFilter] = useState("all");
-  const bonusPercent = currentLevel?.bonus_percent || 0;
+  const bonusPercent = currentLevel?.bonusPercent || 0;
   const levelColor = currentLevel?.color || "#003466";
 
   return (
@@ -36,7 +43,7 @@ const PointsTab = ({ totalPoints, currentLevel }) => {
             className={styles.pointsSummaryValue}
             style={{ color: levelColor }}
           >
-            {currentLevel?.name || "Львёнок"}
+            {currentLevel?.name || "Регистрация в клубе"}
           </span>
         </div>
         <div className={styles.pointsSummaryDivider} aria-hidden="true" />

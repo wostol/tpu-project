@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import styles from "./ProfileTabs.module.css";
 import ExitButton from "../../component/ExitButton";
 import ConfirmDialog from "../../component/ConfirmDialog";
+import { useProfileData } from "../ProfileDataContext";
 
 const STORAGE_KEY = "sportclub-notifications";
 
@@ -19,16 +20,9 @@ const loadPrefs = () => {
 
 /*
  * Переключатель в стиле iOS: роль switch + aria-checked,
- * полностью управляется с клавиатуры (обычная <button>).
+ * полностью управляется с клавиатурой (обычная <button>).
  */
-const ToggleRow = ({
-  id,
-  title,
-  description,
-  checked,
-  disabled,
-  onChange,
-}) => (
+const ToggleRow = ({ id, title, description, checked, disabled, onChange }) => (
   <div className={styles.settingsToggleRow}>
     <div className={styles.settingsToggleInfo}>
       <h4 id={id}>{title}</h4>
@@ -54,8 +48,13 @@ const ToggleRow = ({
 /*
  * Вкладка «Настройки»: каналы уведомлений, данные профиля из ТПУ
  * (только чтение) и выход из аккаунта.
+ *
+ * Данные пользователя и выход берутся из ProfileDataContext
+ * (useProfileData) — пропсы не нужны.
  */
-const SettingsTab = ({ user, userFullName, userGroup, userInstitute, onLogout }) => {
+const SettingsTab = () => {
+  const { user, userFullName, userGroup, userInstitute, logout } =
+    useProfileData();
   const [prefs, setPrefs] = useState(loadPrefs);
   const [pushState, setPushState] = useState("default"); // default | granted | denied | unsupported
   const [logoutDialog, setLogoutDialog] = useState(false);
@@ -128,8 +127,8 @@ const SettingsTab = ({ user, userFullName, userGroup, userInstitute, onLogout })
       >
         <h3 className={styles.settingsSectionTitle}>Уведомления</h3>
         <p className={styles.settingsSectionHint}>
-          Выберите, как сообщать о начислении баллов, новых событиях и
-          изменении статуса заказов.
+          Выберите, как сообщать о начислении баллов, новых событиях и изменении
+          статуса заказов.
         </p>
 
         <ToggleRow
@@ -157,10 +156,7 @@ const SettingsTab = ({ user, userFullName, userGroup, userInstitute, onLogout })
       </section>
 
       {/* Данные профиля из ТПУ — только чтение */}
-      <section
-        className={styles.settingsSection}
-        aria-label="Данные профиля"
-      >
+      <section className={styles.settingsSection} aria-label="Данные профиля">
         <h3 className={styles.settingsSectionTitle}>Данные профиля</h3>
         <p className={styles.settingsSectionHint}>
           Данные синхронизированы с аккаунтом ТПУ и редактируются только в
@@ -184,8 +180,8 @@ const SettingsTab = ({ user, userFullName, userGroup, userInstitute, onLogout })
           <div className={styles.settingsToggleInfo}>
             <h4>Выйти из аккаунта</h4>
             <p>
-              Сессия завершится на этом устройстве. Корзина и избранные
-              события сохранятся.
+              Сессия завершится на этом устройстве. Корзина и избранные события
+              сохранятся.
             </p>
           </div>
           <ExitButton onLogout={() => setLogoutDialog(true)} />
@@ -198,7 +194,7 @@ const SettingsTab = ({ user, userFullName, userGroup, userInstitute, onLogout })
         message="Вы уверены, что хотите выйти? Начисленные баллы останутся на месте."
         onConfirm={() => {
           setLogoutDialog(false);
-          onLogout?.();
+          logout?.();
         }}
         onCancel={() => setLogoutDialog(false)}
         confirmText="Выйти"

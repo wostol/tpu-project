@@ -11,8 +11,9 @@ import {
   OrdersTab,
   SettingsTab,
 } from "./tabs";
-import { normalizeLevels } from "../pages/levelsData";
+import { LEVELS_FALLBACK, normalizeLevels } from "../pages/levelsData";
 import { useProfile } from "./useProfile";
+import { ProfileDataProvider } from "./ProfileDataContext";
 import ExitButton from "../component/ExitButton";
 
 /*
@@ -30,6 +31,11 @@ import ExitButton from "../component/ExitButton";
  * даёт свежий баланс и ФИО — authStore может отставать после покупок
  * и начислений. Плоские поля из /profile/me накладываются поверх
  * auth-пользователя; вложенные ТПУ-данные (userInfo) есть только в user.
+ *
+ * Раздача данных во вкладки: ProfileDataContext (файл ./ProfileDataContext.jsx).
+ * Вкладки больше не получают пропсов — каждая берёт ровно то, что ей нужно,
+ * хуком useProfileData(). Это устраняет рассинхрон: раньше одна вкладка
+ * читала bonus_percent, другая minPoints, а Обзор показывал id уровня.
  */
 const TABS = [
   { key: "overview", label: "Обзор", icon: "icon-home" },
@@ -84,10 +90,7 @@ const TAB_ICONS = {
   ),
   settings: (
     <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6A3.61 3.61 0 0 1 8.4 12c0-1.98 1.62-3.6 3.6-3.6s3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"
-        fill="currentColor"
-      />
+      <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6A3.61 3.61 0 0 1 8.4 12c0-1.98 1.62-3.6 3.6-3.6s3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
     </svg>
   ),
 };
@@ -107,7 +110,11 @@ function ProfilePage() {
   const { user, loading, logout } = useAuth();
   // Свежий профиль из GET /profile/me: баланс меняется после покупок
   // и начислений, а user из authStore обновляется реже
-  const { profile, loading: profileLoading } = useProfile();
+  const {
+    profile,
+    loading: profileLoading,
+    refresh: refreshProfile,
+  } = useProfile();
   const navigate = useNavigate();
 
   // Свежие плоские поля профиля поверх auth-пользователя.
@@ -123,6 +130,7 @@ function ProfilePage() {
     return { ...user, ...fresh };
   }, [user, profile]);
 
+  // Баланс — только User.totalPoints (в модели БД поля user.points нет)
   const totalPoints = mergedUser?.totalPoints || 0;
 
   // Загрузка заказов
@@ -141,19 +149,23 @@ function ProfilePage() {
     fetchOrders();
   }, []);
 
-  // Загрузка уровней; при ошибке бэкенда — локальный фолбэк,
-  // чтобы лестница и карточка уровня никогда не были пустыми
+  // Загрузка уровней; при ошибке или пустом ответе бэкенда — локальный
+  // фолбэк (Таблица уровней программы), чтобы лестница и карточка уровня
+  // никогда не были пустыми
   useEffect(() => {
     const fetchLevels = async () => {
       try {
         const data = await apiRequest("/levels");
-        setAllLevels(normalizeLevels(data));
+        const normalized = normalizeLevels(data);
+        setAllLevels(
+          normalized.length > 0 ? normalized : normalizeLevels(LEVELS_FALLBACK),
+        );
       } catch (error) {
         console.error(
           "Ошибка загрузки уровней (использую локальный фолбэк):",
           error,
         );
-        setAllLevels(normalizeLevels([]));
+        setAllLevels(normalizeLevels(LEVELS_FALLBACK));
       } finally {
         setLevelsLoading(false);
       }
@@ -194,15 +206,25 @@ function ProfilePage() {
     ? "ИШИТР"
     : userInstitute;
 
-  const getCurrentLevel = () => {
+  // Текущий уровень: последний уровень, чей порог (minPoints — camelCase,
+  // как в модели Prisma и в ответе GET /levels) не выше баланса.
+  const currentLevel = useMemo(() => {
     const sortedLevels = [...allLevels].sort(
-      (a, b) => b.min_points - a.min_points,
+      (a, b) => b.minPoints - a.minPoints,
     );
     return (
-      sortedLevels.find((level) => totalPoints >= level.min_points) ||
-      allLevels[0]
+      sortedLevels.find((level) => totalPoints >= level.minPoints) ||
+      allLevels[0] ||
+      null
     );
-  };
+  }, [allLevels, totalPoints]);
+
+  // Следующий уровень (null — достигнут максимальный): считается один раз
+  // здесь, чтобы вкладки не дублировали эту логику
+  const nextLevel = useMemo(
+    () => allLevels.find((level) => level.minPoints > totalPoints) || null,
+    [allLevels, totalPoints],
+  );
 
   // Личные достижения (пока захардкожены — бэкенд ещё не отдаёт их)
   const achievementsData = useMemo(
@@ -239,7 +261,23 @@ function ProfilePage() {
     [totalPoints],
   );
 
-  const currentLevel = getCurrentLevel();
+  // Единый объект профиля для всех вкладок: собирается один раз здесь
+  // и раздаётся через ProfileDataContext (см. ./ProfileDataContext.jsx).
+  // Новое поле для вкладок добавляется только сюда.
+  const profileData = {
+    user: mergedUser,
+    userFullName,
+    userGroup,
+    userInstitute: shortInstitute,
+    totalPoints,
+    currentLevel,
+    nextLevel,
+    allLevels,
+    orders,
+    achievements: achievementsData,
+    logout: handleLogout,
+    refreshProfile,
+  };
 
   if (loading || profileLoading || levelsLoading || ordersLoading) {
     return (
@@ -286,42 +324,14 @@ function ProfilePage() {
         role="tabpanel"
         aria-labelledby={`tab-${activeTab}`}
       >
-        {activeTab === "overview" && (
-          <OverviewTab
-            user={mergedUser}
-            totalPoints={totalPoints}
-            currentLevel={currentLevel}
-            allLevels={allLevels}
-            userName={mergedUser?.firstName || userFullName}
-            userGroup={userGroup}
-            userInstitute={shortInstitute}
-          />
-        )}
-        {activeTab === "achievements" && (
-          <AchievementsTab
-            achievementsData={achievementsData}
-            allLevels={allLevels}
-            totalPoints={totalPoints}
-            currentLevel={currentLevel}
-          />
-        )}
-        {activeTab === "points" && (
-          <PointsTab
-            totalPoints={totalPoints}
-            currentLevel={currentLevel}
-            allLevels={allLevels}
-          />
-        )}
-        {activeTab === "orders" && <OrdersTab orders={orders} />}
-        {activeTab === "settings" && (
-          <SettingsTab
-            user={mergedUser}
-            userFullName={userFullName}
-            userGroup={`${userGroup} · ${shortInstitute}`}
-            userInstitute={shortInstitute}
-            onLogout={handleLogout}
-          />
-        )}
+        {/* Все вкладки берут данные из контекста — пропсы не нужны */}
+        <ProfileDataProvider value={profileData}>
+          {activeTab === "overview" && <OverviewTab />}
+          {activeTab === "achievements" && <AchievementsTab />}
+          {activeTab === "points" && <PointsTab />}
+          {activeTab === "orders" && <OrdersTab />}
+          {activeTab === "settings" && <SettingsTab />}
+        </ProfileDataProvider>
       </div>
     </div>
   );

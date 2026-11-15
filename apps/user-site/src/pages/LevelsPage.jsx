@@ -30,6 +30,9 @@ import {
  *
  * Для авторизованных студентов сверху показывается личный прогресс
  * («мост» между публичными правилами и вкладкой «Достижения» в профиле).
+ *
+ * Поля уровней — camelCase (minPoints / bonusPercent), как в модели
+ * Prisma; баланс — только user.totalPoints (поля user.points в БД нет).
  */
 const LevelsPage = () => {
   const { isAuthenticated, user } = useAuth();
@@ -56,11 +59,11 @@ const LevelsPage = () => {
   const totalPoints = user?.totalPoints || 0;
   const currentLevel =
     [...levels]
-      .sort((a, b) => b.min_points - a.min_points)
-      .find((l) => totalPoints >= l.min_points) || levels[0];
-  const nextLevel = levels.find((l) => l.min_points > totalPoints);
+      .sort((a, b) => b.minPoints - a.minPoints)
+      .find((l) => totalPoints >= l.minPoints) || levels[0];
+  const nextLevel = levels.find((l) => l.minPoints > totalPoints);
   const isMaxLevel = !nextLevel;
-  const pointsNeeded = isMaxLevel ? 0 : nextLevel.min_points - totalPoints;
+  const pointsNeeded = isMaxLevel ? 0 : nextLevel.minPoints - totalPoints;
 
   return (
     <div className={styles.page}>
@@ -133,7 +136,7 @@ const LevelsPage = () => {
                 const isCurrent =
                   isAuthenticated && currentLevel?.id === level.id;
                 const isDone =
-                  isAuthenticated && totalPoints >= level.min_points;
+                  isAuthenticated && totalPoints >= level.minPoints;
                 return (
                   <tr
                     key={level.id}
@@ -151,9 +154,9 @@ const LevelsPage = () => {
                       )}
                     </th>
                     <td className={styles.numCell}>
-                      {level.min_points.toLocaleString("ru-RU")}
+                      {level.minPoints.toLocaleString("ru-RU")}
                     </td>
-                    <td className={styles.numCell}>+{level.bonus_percent}%</td>
+                    <td className={styles.numCell}>+{level.bonusPercent}%</td>
                     <td>{level.prize || "—"}</td>
                   </tr>
                 );
@@ -255,8 +258,9 @@ const LevelsPage = () => {
           <div className={styles.peFact}>
             <strong>Проценты по уровням</strong>
             <span>
-              Бонус к регламентным баллам физ-ры растёт с уровнем: от +2% у
-              «Львёнка» до +20% у «Сибирского льва» (см. таблицу уровней).
+              Бонус к регламентным баллам физ-ры растёт с уровнем: от +2% на
+              уровне «Регистрация в клубе» до +20% у «Сибирского льва» (см.
+              таблицу уровней).
             </span>
           </div>
           <div className={styles.peFact}>

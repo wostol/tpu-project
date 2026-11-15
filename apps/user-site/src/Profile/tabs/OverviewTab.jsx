@@ -2,12 +2,14 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import styles from "./ProfileTabs.module.css";
 import { apiRequest } from "../../auth/apiClient";
+import { useProfileData } from "../ProfileDataContext";
 import {
   getTypeMeta,
   formatDate,
   formatEventDate,
   pluralizePoints,
   pointsToLevelText,
+  getLevelTier,
 } from "./pointsUtils";
 
 /* ---------- иконки ---------- */
@@ -69,31 +71,43 @@ const getGreeting = () => {
 /*
  * Вкладка «Обзор» — хаб прогресса в духе Duolingo:
  * всё важное видно сразу, без переходов по вкладкам.
+ *
+ * Все данные берутся из ProfileDataContext (useProfileData) —
+ * пропсы не нужны: user, totalPoints, currentLevel, nextLevel и
+ * allLevels кладёт в контекст ProfilePage.
  */
-const OverviewTab = ({
-  user,
-  totalPoints,
-  currentLevel,
-  allLevels,
-  userName,
-  userGroup,
-  userInstitute,
-}) => {
+const OverviewTab = () => {
+  const {
+    user,
+    userFullName,
+    userGroup,
+    userInstitute,
+    totalPoints,
+    currentLevel,
+    nextLevel,
+    allLevels,
+  } = useProfileData();
+
   const levelColor = currentLevel?.color || "#003466";
-  const bonusPercent = currentLevel?.bonus_percent || 0;
+  // Бонус текущего уровня — camelCase, как в модели Prisma (bonusPercent)
+  const bonusPercent = currentLevel?.bonusPercent || 0;
 
   /* --- следующий уровень и прогресс --- */
-  const nextLevel = allLevels.find((l) => l.min_points > totalPoints);
   const isMaxLevel = !nextLevel;
   const pointsNeeded = isMaxLevel
     ? 0
-    : Math.max(0, nextLevel.min_points - totalPoints);
-  const prevMin = currentLevel?.min_points || 0;
-  const range = isMaxLevel ? 0 : nextLevel.min_points - prevMin;
+    : Math.max(0, nextLevel.minPoints - totalPoints);
+  const prevMin = currentLevel?.minPoints || 0;
+  const range = isMaxLevel ? 0 : nextLevel.minPoints - prevMin;
   const progress =
     isMaxLevel || range <= 0
       ? 100
       : Math.min(100, Math.max(0, ((totalPoints - prevMin) / range) * 100));
+
+  /* --- ступень уровня на лестнице (римская цифра V…I из Таблицы уровней).
+         Важно: это НЕ id из БД — id не совпадает со ступенью,
+         из-за чего на Обзоре показывался «уровень 5» */
+  const levelTier = getLevelTier(currentLevel, allLevels);
 
   /* --- ближайшая награда: приз следующего уровня --- */
   const nearestReward = nextLevel?.prize || "";
@@ -137,7 +151,8 @@ const OverviewTab = ({
     };
   }, []);
 
-  const firstName = (userName || "").split(" ")[0] || "друг";
+  const firstName =
+    user?.firstName || (userFullName || "").split(" ")[0] || "друг";
 
   return (
     <div className={styles.overviewTab}>
@@ -162,12 +177,14 @@ const OverviewTab = ({
       >
         <div className={styles.levelHeroTop}>
           <div className={styles.levelHeroBadge} aria-hidden="true">
-            {currentLevel?.id || 1}
+            {/* Ступень уровня (V…I) или звезда для стартового «Регистрация в клубе».
+                Никаких id из БД — раньше здесь выводился level.id («уровень 5») */}
+            {levelTier || "★"}
           </div>
           <div className={styles.levelHeroInfo}>
             <p className={styles.levelHeroKicker}>Ваш уровень</p>
             <h3 className={styles.levelHeroName}>
-              {currentLevel?.name || "Львёнок"}
+              {currentLevel?.name || "Регистрация в клубе"}
             </h3>
           </div>
           <div className={styles.levelHeroBalance}>
@@ -200,10 +217,12 @@ const OverviewTab = ({
                 />
               </div>
               <p className={styles.levelHeroProgressText}>
-                <strong>{pointsToLevelText(pointsNeeded, nextLevel?.name)}</strong>
+                <strong>
+                  {pointsToLevelText(pointsNeeded, nextLevel?.name)}
+                </strong>
                 <span className={styles.levelHeroProgressRange}>
                   {" "}
-                  · {totalPoints} / {nextLevel.min_points}
+                  · {totalPoints} / {nextLevel.minPoints}
                 </span>
               </p>
             </>
@@ -226,9 +245,7 @@ const OverviewTab = ({
               <PEIcon />
             </span>
             <span className={styles.levelHeroMetricLabel}>Статус</span>
-            <span className={styles.levelHeroMetricValue}>
-              Учащийся ТПУ
-            </span>
+            <span className={styles.levelHeroMetricValue}>Учащийся ТПУ</span>
           </div>
           <div className={styles.levelHeroMetric}>
             <span className={styles.levelHeroMetricIcon}>
@@ -293,10 +310,7 @@ const OverviewTab = ({
           )}
         </section>
 
-        <section
-          className={styles.overviewPanel}
-          aria-label="Ближайшая запись"
-        >
+        <section className={styles.overviewPanel} aria-label="Ближайшая запись">
           <div className={styles.overviewPanelHead}>
             <h3>Ближайшая запись</h3>
             <Link to="/favorites" className={styles.overviewPanelLink}>
@@ -316,15 +330,14 @@ const OverviewTab = ({
                 <CalendarIcon />
               </span>
               <div className={styles.nearestEventInfo}>
-                <p className={styles.nearestEventTitle}>
-                  {nearestEvent.title}
-                </p>
+                <p className={styles.nearestEventTitle}>{nearestEvent.title}</p>
                 <p className={styles.nearestEventMeta}>
                   {formatEventDate(nearestEvent.startDate)} ·{" "}
                   {nearestEvent.location}
                 </p>
                 <span className={styles.nearestEventBadge}>
-                  Вы записаны как {nearestEvent.role === "fan" ? "зритель" : "участник"}
+                  Вы записаны как{" "}
+                  {nearestEvent.role === "fan" ? "зритель" : "участник"}
                 </span>
               </div>
             </div>

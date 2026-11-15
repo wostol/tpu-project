@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { imageUrl } from "../../config";
 import cap from "../../image/cap.png";
 import styles from "./ProfileTabs.module.css";
+import { useProfileData } from "../ProfileDataContext";
 import { pluralizePoints } from "./pointsUtils";
 
 const statusLabels = {
@@ -30,8 +31,13 @@ const statusTone = (status) => {
 /*
  * Вкладка «Заказы»: текущие заказы (статусное продвижение) сверху,
  * история — ниже. Обе группы с пустыми состояниями.
+ *
+ * Заказы берутся из ProfileDataContext (useProfileData) — ProfilePage
+ * загружает их один раз и кладёт в контекст, пропсы не нужны.
  */
-const OrdersTab = ({ orders }) => {
+const OrdersTab = () => {
+  const { orders } = useProfileData();
+
   if (!orders || orders.length === 0) {
     return (
       <div className={styles.noContent}>
