@@ -159,7 +159,7 @@ const OverviewTab = () => {
       {/* 1. ПРИВЕТСТВИЕ */}
       <section className={styles.greetingBlock} aria-label="Приветствие">
         <h2 className={styles.greetingTitle}>
-          {getGreeting()}, {firstName}!
+          {getGreeting()}, {userFullName}!
         </h2>
         <p className={styles.greetingSub}>
           {userGroup} · {userInstitute} — всё о вашем прогрессе на одной

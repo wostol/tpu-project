@@ -19,6 +19,11 @@ import HomePage from "./pages/HomePage";
 import LevelsPage from "./pages/LevelsPage";
 import OrderDetailPage from "./pages/OrderDetailPage";
 import ScrollToTop from "./component/ScrollToTop";
+import ScrollToHash from "./component/ScrollToHash";
+import {
+  PrivacyPolicyPage,
+  PersonalDataConsentPage,
+} from "./component/LegalPages";
 
 function AppContent() {
   return (
@@ -28,7 +33,10 @@ function AppContent() {
 
         <main className="main-content">
           <div className="container-page">
+            <ScrollToHash offset={88} />
             <Routes>
+              <Route path="/privacy" element={<PrivacyPolicyPage />} />
+              <Route path="/consent" element={<PersonalDataConsentPage />} />
               <Route path="/" element={<HomePage />} />
 
               {/* Мероприятия — переехали с / на /events */}
