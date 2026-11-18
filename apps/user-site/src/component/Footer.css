@@ -1,340 +1,474 @@
 /*
- * Подвал «Сибирских Львов» — стили по брендбуку и результатам ревью
- * (раунд 2).
- *
- * ЧТО ИСПРАВЛЕНО В ЭТОМ РАУНДЕ
- *   - Логотип больше не выходит за верхнюю границу подвала: отрицательный
- *     margin логотипа и margin-top самого .footer убраны — контент
- *     страниц больше не перекрывается.
- *   - ВКонтакте переехал из отдельной строки в «Контакты» (строка
- *     «Сообщество»: иконка + vk.com/sib_lions + #siblions с постоянным
- *     подчёркиванием).
- *   - Кликабельное в контактах отличимо от некликабельного: у ссылок
- *     (телефон, почта, tpu.ru, ВК) подчёркивание видно в покое; адрес —
- *     белый текст без линии.
- *   - Статус прошедшего события — текст ПОСЛЕ даты («12 июня ·
- *     Завершено») без рамки-пилюли: пилюля выглядела кнопкой и на узкой
- *     колонке переносилась над датой; 10px uppercase заменены на 12px.
- *   - У прошедших событий нет hover-подсветки — архивная запись не
- *     «вспыхивает» как активная.
- *   - Правовые ссылки (152-ФЗ) набраны ярче копирайта: muted против dim.
- *   - Отступы приведены к шкале 4/8 px (--footer-space-*), дыра сетки
- *     на планшетных брейкпоинтах закрыта (см. медиазапросы).
- *
- * ПАЛИТРА: синий основа rgba(0,52,101), ЕДИНСТВЕННЫЙ акцент — зелёный
- * #28be46 (ховеры, «Все мероприятия», разделители, фокус), белый и чёрный
- * для светлых зон. Жёлтого/золотого в палитре бренда нет.
- *
- * ХОВЕР: подчёркивание растёт из центра через background-size —
- * текст не сдвигается.
- *
- * ДОСТУПНОСТЬ: видимый фокус :focus-visible (ссылки И кнопка «Войти»),
- * уважение prefers-reduced-motion, контраст текста ≥ 4.5:1 на синем фоне.
- */
-
+  Подвал «Сибирских Львов» — ревизия по чек-листу ревью:
+  1) единая жёсткая 12-колоночная сетка: бренд (1–4), навигация (5–6 / 7–8 /
+     9–10 / 11–12), контакты на тех же треках (адрес строго под брендом),
+     разделители и нижняя панель на всю ширину — верх и низ выровнены;
+  2) заголовки колонок без курсива (Bold), зелёная черта короче и растёт
+     только при ховере колонки;
+  3) статус «Завершено» — полупрозрачный серый бейдж-pill, отделён от даты;
+  4) на мобильных логотип в футере скрыт (остаётся текстовый бренд-блок);
+  5) аккордеон: кликабелен весь ряд (min-height 48px), разделители ярче,
+     chevron крутится на 180°;
+  6) соцсети: зазор ≥ 10px, компактные 40px на мобильных;
+  7) безопасные боковые отступы 20/16px на мобильных;
+  8) контраст поднят (muted .88 / dim .72 / label .66 — все ≥ 4.5:1 на синем);
+  9) контакты: лейблы мельче и бледнее, значения белые полужирные; адрес
+     двумя строками без трекинга;
+  10) CTA «Все мероприятия →» ярче и с постоянным подчёркиванием;
+  11) иконка VK — современная буквенная монограмма;
+  12) ненавязчивая кнопка «Наверх» только на мобильных, появляется после скролла.
+*/
+body:has(.page-home) .footer {
+  margin-top: 0 !important;
+}
 .footer {
-  /* --- фирменные токены --- */
-  --footer-accent: #28be46; /* единственный акцент по брендбуку */
-  --footer-navy: rgba(0, 52, 101, 1);
-  --footer-navy-deep: #00203f;
-  --footer-line: rgba(255, 255, 255, 0.18);
-  --footer-text-muted: rgba(255, 255, 255, 0.78);
-  --footer-text-dim: rgba(255, 255, 255, 0.6);
-  --footer-text-faint: rgba(255, 255, 255, 0.55);
+  --navy: #003465;
+  --navy-mid: #002a52;
+  --navy-deep: #001d3a;
+  --steel: #1266b3;
+  --accent: #28be46;
+  --accent-bright: #3fd45c;
+  --ink: #ffffff;
+  --muted: rgba(255, 255, 255, 0.88);
+  --dim: rgba(255, 255, 255, 0.72);
+  --label: rgba(255, 255, 255, 0.66);
+  --hairline: rgba(255, 255, 255, 0.16);
+  --hairline-strong: rgba(255, 255, 255, 0.28);
 
-  /* --- шкала вертикального ритма, кратна 4/8 px (ревью P2):
-     «воздух» между блоками берётся только из этих переменных --- */
-  --footer-space-2xs: 4px;
-  --footer-space-xs: 8px;
-  --footer-space-s: 12px;
-  --footer-space-m: 16px;
-  --footer-space-l: 24px;
-  --footer-space-xl: 32px;
-  --footer-space-2xl: 40px;
+  --footer-logo: 56px;
+  --col-gap: 24px;
 
-  /* --- единый источник размера логотипа --- */
-  --footer-logo: 200px;
-  /* Зазор под логотипом — часть масштабной шкалы логотипа,
-     не ритмическая сетка текстовых блоков */
-  --footer-logo-gap: calc(var(--footer-logo) / 4);
-
+  position: relative;
   width: 100%;
+  margin-top: 64px;
+  padding: 48px 0 28px;
+  color: var(--ink);
   background: linear-gradient(
     180deg,
-    #003c74 0%,
-    var(--footer-navy) 45%,
-    var(--footer-navy-deep) 100%
+    var(--navy) 0%,
+    var(--navy-mid) 55%,
+    var(--navy-deep) 100%
   );
-  color: #ffffff;
-  /* Логотип живёт ВНУТРИ подвала: ни отрицательных отступов у строки
-     логотипа, ни margin-top у подвала — верхняя граница не накрывает
-     контент страницы (ревью: «лого перекрывает страницы») */
-  padding: var(--footer-space-2xl) 0 var(--footer-space-xl);
+  border-top: 2px solid var(--accent);
+  overflow: hidden;
 }
 
+/* слоистая атмосфера: CSS-паттерн «скоростных линий» + свечения палитры */
+.footer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0.022) 0 1px,
+    transparent 1px 9px
+  );
+}
+.footer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      52% 40% at 12% -8%,
+      rgba(18, 102, 179, 0.26),
+      transparent 70%
+    ),
+    radial-gradient(
+      40% 30% at 88% -6%,
+      rgba(40, 190, 70, 0.12),
+      transparent 72%
+    ),
+    radial-gradient(
+      70% 46% at 50% 118%,
+      rgba(18, 102, 179, 0.18),
+      transparent 74%
+    );
+}
+
+/* ---------- единая 12-колоночная сетка ---------- */
 .footer-container {
+  position: relative;
+  z-index: 1;
   margin: 0 auto;
   width: 100%;
   max-width: 1400px;
   padding: 0 24px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   box-sizing: border-box;
 }
-
-/* ===== Логотип — ссылка на главную ===== */
-
-.footer-logo-row {
-  width: fit-content;
-  margin: 0 auto var(--footer-logo-gap);
+.footer-grid12 {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  column-gap: var(--col-gap);
+  row-gap: 40px;
+  align-items: start;
+}
+.footer-brand {
+  grid-column: 1 / span 4;
+}
+.fc-events {
+  grid-column: 5 / span 2;
+}
+.fc-sections {
+  grid-column: 7 / span 2;
+}
+.fc-program {
+  grid-column: 9 / span 2;
+}
+.fc-profile {
+  grid-column: 11 / span 2;
+}
+.footer-divider {
+  grid-column: 1 / -1;
+  height: 1px;
+  background: var(--hairline);
+}
+.footer-bottom {
+  grid-column: 1 / -1;
 }
 
-.footer-logo-link {
+/* контакты раскладываются по тем же трекам через display:contents */
+.footer-contacts {
+  display: contents;
+  font-style: normal;
+}
+.footer-contacts > .footer-contact:nth-child(1) {
+  grid-column: 1 / span 4;
+}
+.footer-contacts > .footer-contact:nth-child(2) {
+  grid-column: 5 / span 2;
+}
+.footer-contacts > .footer-contact:nth-child(3) {
+  grid-column: 7 / span 2;
+}
+.footer-contacts > .footer-contact:nth-child(4) {
+  grid-column: 9 / span 2;
+}
+.footer-contacts > .footer-contact:nth-child(5) {
+  grid-column: 11 / span 2;
+}
+
+/* ---------- появление при скролле (без JS контент виден) ---------- */
+.footer.js .reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity 0.6s ease,
+    transform 0.6s ease;
+}
+.footer.js.is-visible .reveal {
+  opacity: 1;
+  transform: none;
+}
+.footer.js.is-visible .reveal-d1 {
+  transition-delay: 0.08s;
+}
+.footer.js.is-visible .reveal-d2 {
+  transition-delay: 0.16s;
+}
+.footer.js.is-visible .reveal-d3 {
+  transition-delay: 0.24s;
+}
+
+/* ---------- бренд-блок ---------- */
+.footer-brand {
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  min-width: 0;
+}
+.footer-brand-link {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 14px;
+  text-decoration: none;
+  color: var(--ink);
+  border-radius: 8px;
+  transition: transform 0.25s ease;
+}
+.footer-brand-link:hover {
+  transform: translateY(-1px);
+}
+.footer-logo {
   width: var(--footer-logo);
   height: var(--footer-logo);
-  background: var(--footer-navy);
   border-radius: 50%;
-  box-shadow: 0 12px 40px rgba(0, 20, 40, 0.5);
-  transition: transform 0.3s ease;
-}
-
-.footer-logo-link:hover {
-  transform: scale(1.04);
-}
-
-.footer-logo {
-  width: calc(var(--footer-logo) - 24px);
-  height: calc(var(--footer-logo) - 24px);
   object-fit: contain;
   display: block;
+  flex-shrink: 0;
+  box-shadow: 0 6px 20px rgba(0, 16, 34, 0.45);
 }
-
-/* ===== Идентификация и слоган ===== */
-
-.footer-identity {
-  font-family: "Kontora";
-  font-style: normal;
-  font-weight: 400;
-  font-size: 13px;
-  line-height: 18px;
-  letter-spacing: 0.4px;
-  color: var(--footer-text-muted);
-  text-align: center;
-  margin: 0 auto;
-  max-width: 640px;
-}
-
-.footer-slogan {
-  font-family: "Kontora";
-  font-style: italic; /* перекликается с курсивными заголовками брендбука */
-  font-weight: 700;
-  font-size: 15px;
-  line-height: 20px;
-  color: rgba(255, 255, 255, 0.92);
-  text-align: center;
-  margin: var(--footer-space-s) 0 var(--footer-space-xl);
-}
-
-/* ===== Сетка: пять наполненных колонок, «Контакты» — в центре ===== */
-
-.footer-grid {
-  width: 100%;
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: var(--footer-space-l);
-  justify-items: center;
-  align-items: start;
-  margin-bottom: var(--footer-space-2xl);
-}
-
-.footer-col {
+.footer-brand-text {
   display: flex;
   flex-direction: column;
-  gap: var(--footer-space-m);
-  min-width: 150px;
-  max-width: 100%;
-  text-align: center;
-  box-sizing: border-box;
+  gap: 3px;
+  min-width: 0;
 }
-
-/* Заголовок колонки: по брендбуку — курсивное полужирное начертание.
-   Гарнитуру Kontora не меняем. */
-.footer-col-title {
-  font-family: "Kontora";
+.footer-brand-title {
+  font-family: "Kontora", system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 20px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+.footer-brand-sub {
+  font-family: "Kontora", system-ui, sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.3px;
+  color: var(--dim);
+}
+.footer-identity {
+  margin: 0;
+  max-width: 360px;
+  font-family: "Kontora", system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 19px;
+  letter-spacing: 0.3px;
+  color: var(--muted);
+}
+.footer-slogan {
+  margin: 0;
+  font-family: "Kontora", system-ui, sans-serif;
   font-style: italic;
   font-weight: 700;
   font-size: 15px;
-  line-height: 20px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #ffffff;
-  margin: 0;
-  white-space: nowrap;
+  line-height: 21px;
+  color: var(--ink);
 }
 
-/* Короткая зелёная черта под заголовком — как на макете */
+/* ---------- соцблок ---------- */
+.footer-social {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+}
+.social-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--ink);
+  transition:
+    background-color 0.25s ease,
+    transform 0.25s ease;
+}
+.social-link:hover {
+  background: var(--accent);
+  transform: translateY(-2px);
+}
+.social-svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+.footer-hashtag {
+  margin-left: 4px;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.3px;
+  color: var(--accent);
+}
+
+/* ---------- колонки навигации ---------- */
+.footer-col {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: left;
+  box-sizing: border-box;
+}
+.footer-col-head {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  color: var(--ink);
+  cursor: default;
+}
+/* заголовки: полужирное прямое начертание, без курсива */
+.footer-col-title {
+  font-family: "Kontora", system-ui, sans-serif;
+  font-style: normal;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 18px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  white-space: nowrap;
+}
+/* короткая зелёная черта; растёт только при ховере колонки */
 .footer-col-title::after {
   content: "";
   display: block;
-  width: 32px;
+  width: 20px;
   height: 2px;
-  margin: var(--footer-space-xs) auto 0;
+  margin: 8px 0 0;
   border-radius: 2px;
-  background: var(--footer-accent);
+  background: var(--accent);
+  transition: width 0.25s ease;
+}
+.footer-col:hover .footer-col-title::after {
+  width: 32px;
+}
+.acc-chevron {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin-left: auto;
+  color: var(--accent);
+  transition: transform 0.3s ease;
+}
+.acc-head[aria-expanded="true"] .acc-chevron {
+  transform: rotate(180deg);
+}
+
+.acc-panel {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.35s ease;
+}
+.acc-inner {
+  overflow: hidden;
+  min-height: 0;
 }
 
 .footer-col-list {
   list-style: none;
-  padding: 0;
   margin: 0;
+  padding: 0;
+  width: 100%;
   display: flex;
   flex-direction: column;
-  gap: var(--footer-space-s);
-  align-items: center;
-  width: 100%;
+  gap: 12px;
+  align-items: flex-start;
 }
-
 .footer-col-list li {
   margin: 0;
   padding: 0;
   width: 100%;
 }
 
-/* ===== Ссылки: подчёркивание растёт из центра, без сдвига текста ===== */
-
+/* ссылки: подчёркивание растёт слева, текст не сдвигается */
 .footer-link {
-  font-family: "Kontora";
-  font-style: normal;
-  font-weight: 400;
+  font-family: "Kontora", system-ui, sans-serif;
   font-size: 14px;
   line-height: 18px;
-  color: var(--footer-text-muted);
+  color: var(--muted);
   text-decoration: none;
-  background-image: linear-gradient(var(--footer-accent), var(--footer-accent));
+  background-image: linear-gradient(var(--accent), var(--accent));
   background-repeat: no-repeat;
   background-size: 0% 1px;
-  background-position: 50% 100%;
-  padding-bottom: var(--footer-space-2xs);
+  background-position: 0 100%;
+  padding-bottom: 2px;
+  overflow-wrap: break-word;
   transition:
     color 0.25s ease,
     background-size 0.25s ease;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
 }
-
 .footer-link:hover {
-  color: #ffffff;
+  color: var(--ink);
   background-size: 100% 1px;
 }
-
 .footer-link:active {
-  color: var(--footer-accent);
+  color: var(--accent);
 }
 
-/* «Войти» для гостя — кнопка в облике ссылки. Дефолтное оформление
-   кнопки сбрасываем ТОЧЕНЫМИ свойствами: shorthand `background: none`
-   убил бы подчёркивание, живущее на background-image */
-button.footer-link.footer-login {
-  padding: 0 0 var(--footer-space-2xs);
-  border: 0;
-  background-color: transparent;
-  cursor: pointer;
-}
-
-/* ===== Мероприятия ===== */
-
+/* ---------- мероприятия ---------- */
 .footer-event-link {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: var(--footer-space-2xs);
-  padding-bottom: var(--footer-space-2xs);
+  align-items: flex-start;
+  gap: 5px;
+  padding-bottom: 4px;
 }
-
 .footer-event-title {
   display: block;
   max-width: 100%;
 }
-
-/* Дата — ПЕРВОЙ (первичная информация), статус — после неё.
-   Обычный inline-поток: на узкой колонке строка переносится естественно,
-   без «чип над датой» (ревью P1) */
-.footer-event-date {
-  font-family: "Kontora";
+.footer-event-meta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
   font-size: 12px;
   line-height: 16px;
-  color: var(--footer-text-dim);
+  color: var(--dim);
 }
-
-/* Зелёная точка у предстоящих событий — спокойный акцент статуса */
-.footer-event:not(.footer-event--past) .footer-event-date::before {
-  content: "";
-  display: inline-block;
+.footer-event-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--footer-accent);
-  margin-right: var(--footer-space-xs);
-  vertical-align: middle;
+  background: var(--accent);
+  flex-shrink: 0;
 }
-
-/* Прошедшее событие: приглушённая пара «дата · Завершено» */
+/* статус — бейдж-pill, визуально отделён от названия и даты */
+.footer-event-badge {
+  display: inline-block;
+  font-weight: 700;
+  font-size: 10px;
+  line-height: 12px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
 .footer-event--past .footer-event-link {
-  color: var(--footer-text-faint);
+  color: var(--muted);
 }
-
-/* Статус после даты: 12px обычного начертания, без рамки и фона —
-   пилюля читалась кнопкой (ложная аффорданса), а 10px uppercase были
-   на грани контраста (ревью P2) */
-.footer-event-sep {
-  margin: 0 var(--footer-space-2xs);
+.footer-event--past .footer-event-link:hover {
+  color: var(--ink);
 }
-
-.footer-event-status {
-  color: var(--footer-text-faint);
-  letter-spacing: 0.3px;
-}
-
-/* Прошедшие события: без hover-подсветки — архивная запись не должна
-   «вспыхивать» как активная (ревью P2). Ссылки остаются рабочими,
-   фокус с клавиатуры сохраняется */
-.footer-event--past .footer-event-link:hover,
-.footer-event--past .footer-event-link:active {
-  color: var(--footer-text-faint);
-  background-size: 0% 1px;
-}
-
-/* Пустое состояние колонки (ни предстоящих, ни прошедших) */
 .footer-empty-note {
-  font-family: "Kontora";
   font-size: 13px;
   line-height: 18px;
-  color: var(--footer-text-dim);
+  color: var(--dim);
 }
 
-/* Ссылка-выход из списка («Все мероприятия →»): зелёный акцент */
+/* CTA: ярче остальных ссылок + постоянное подчёркивание */
 .footer-more {
   display: inline-block;
   font-weight: 700;
   font-size: 13px;
-  line-height: 16px;
-  color: var(--footer-accent);
+  color: var(--accent-bright);
+  background-size: 100% 1px;
 }
-
 .footer-more:hover {
-  color: var(--footer-accent);
+  color: #6fe287;
+  background-size: 100% 1px;
+}
+.footer-more-arrow {
+  display: inline-block;
+  transition: transform 0.25s ease;
+}
+.footer-more:hover .footer-more-arrow {
+  transform: translateX(3px);
 }
 
-/* ===== Скелетон загрузки (вместо строки «Загрузка...») ===== */
-
+/* скелетон */
 .footer-skeleton-item {
   width: 100%;
   max-width: 170px;
-  height: 38px; /* высота будущего пункта: название + дата */
+  height: 40px;
   border-radius: 6px;
   background: linear-gradient(
     100deg,
@@ -345,22 +479,6 @@ button.footer-link.footer-login {
   background-size: 200% 100%;
   animation: footer-shimmer 1.6s ease-in-out infinite;
 }
-
-.footer-skeleton-note {
-  width: 60%;
-  height: 14px;
-  margin-top: var(--footer-space-2xs);
-  border-radius: 6px;
-  background: linear-gradient(
-    100deg,
-    rgba(255, 255, 255, 0.08) 25%,
-    rgba(255, 255, 255, 0.16) 50%,
-    rgba(255, 255, 255, 0.08) 75%
-  );
-  background-size: 200% 100%;
-  animation: footer-shimmer 1.6s ease-in-out infinite;
-}
-
 @keyframes footer-shimmer {
   from {
     background-position: 200% 0;
@@ -370,281 +488,310 @@ button.footer-link.footer-login {
   }
 }
 
-/* ===== Контакты ===== */
-
-.footer-contacts {
-  font-style: normal; /* <address> по умолчанию курсивный — сбрасываем */
-}
-
+/* ---------- контакты ---------- */
 .footer-contact {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: var(--footer-space-2xs);
+  align-items: flex-start;
+  gap: 5px;
+  min-width: 0;
+  text-align: left;
 }
-
 .footer-contact-label {
-  font-family: "Kontora";
-  font-size: 12px;
-  line-height: 15px;
+  font-size: 11px;
+  line-height: 14px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--footer-text-dim);
+  letter-spacing: 0.6px;
+  color: var(--label);
 }
-
 .footer-contact-value {
   font-weight: 700;
-  font-size: 14px;
+  font-size: 15px;
+  line-height: 20px;
+  letter-spacing: 0;
+  color: var(--ink);
+}
+.footer-contact-place {
+  display: block;
+}
+.footer-contact-street {
+  display: block;
+  font-weight: 400;
+  font-size: 13px;
   line-height: 18px;
-  color: #ffffff;
+  color: var(--muted);
 }
 
-/* Кликабельные значения отличаются от некликабельного адреса
-   ПОДЧЁРКИВАНИЕМ В ПОКОЕ (ревью P1: раньше всё набиралось одинаково).
-   В покое линия белая полупрозрачная, на ховере — фирменная зелёная */
-a.footer-contact-value {
-  background-image: linear-gradient(
-    rgba(255, 255, 255, 0.45),
-    rgba(255, 255, 255, 0.45)
-  );
-  background-size: 100% 1px;
-}
-
-a.footer-contact-value:hover {
-  background-image: linear-gradient(var(--footer-accent), var(--footer-accent));
-  color: #ffffff;
-}
-
-/* ВК в строке «Сообщество»: иконка + адрес сообщества */
-.footer-vk-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--footer-space-xs);
-}
-
-.footer-vk-icon {
-  width: 16px;
-  height: 16px;
-  object-fit: contain;
-  filter: brightness(0) invert(1);
-  flex-shrink: 0;
-}
-
-/* Хештег-мост: постоянное зелёное подчёркивание — явная ссылка,
-   а не подпись (ревью P1). Ховер наследуется от .footer-link:hover */
-.footer-hashtag {
-  font-weight: 700;
-  font-size: 14px;
-  line-height: 18px;
-  letter-spacing: 0.3px;
-  color: var(--footer-accent);
-  background-size: 100% 1px;
-}
-
-/* ===== Нижняя панель: копирайт и правовые ссылки по краям ===== */
-
+/* ---------- право ---------- */
 .footer-bottom {
-  width: 100%;
-  border-top: 1px solid var(--footer-line);
-  padding-top: var(--footer-space-m);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--footer-space-xs) var(--footer-space-l);
-  flex-wrap: wrap; /* на мобильных строки переносятся, а не слипаются */
+  gap: 10px 24px;
+  flex-wrap: wrap;
 }
-
 .copyright {
-  font-family: "Kontora";
+  margin: 0;
   font-size: 12px;
   line-height: 16px;
-  color: var(--footer-text-dim);
-  margin: 0;
+  color: var(--dim);
   text-align: left;
 }
-
 .copyright-sep {
-  margin: 0 var(--footer-space-2xs);
+  margin: 0 6px;
 }
-
 .copyright-club {
-  color: var(--footer-text-muted);
+  color: var(--muted);
 }
-
 .footer-legal {
   display: flex;
   align-items: center;
-  gap: var(--footer-space-xs) var(--footer-space-m);
+  gap: 8px 20px;
   flex-wrap: wrap;
 }
-
-/* Правовой блок (152-ФЗ) значимее декоративного копирайта — набран
-   ярче: muted, а не dim (ревью P2) */
 .footer-legal-link {
   font-size: 12px;
   line-height: 16px;
-  color: var(--footer-text-muted);
+  color: var(--muted);
 }
 
-/* ===== Фокус с клавиатуры: всегда видимый, фирменный зелёный ===== */
+/* ---------- кнопка «Наверх» (только мобильные) ---------- */
+.footer-totop {
+  position: fixed;
+  right: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  z-index: 60;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--hairline-strong);
+  background: rgba(0, 29, 58, 0.92);
+  color: var(--ink);
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease,
+    background-color 0.25s ease;
+  box-shadow: 0 8px 24px rgba(0, 10, 24, 0.5);
+}
+.footer-totop svg {
+  width: 16px;
+  height: 16px;
+}
+.footer-totop.is-visible {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+.footer-totop:hover {
+  background: var(--accent);
+}
 
+/* ---------- фокус с клавиатуры ---------- */
 .footer a:focus-visible,
 .footer button:focus-visible {
-  outline: 2px solid var(--footer-accent);
+  outline: 2px solid var(--accent);
   outline-offset: 3px;
   border-radius: 4px;
 }
 
-/* ===== АДАПТИВНОСТЬ: меняется только --footer-logo и число колонок ===== */
-
-@media (max-width: 1200px) {
-  .footer {
-    --footer-logo: 180px;
-  }
-
-  .footer-grid {
-    grid-template-columns: repeat(3, 1fr);
-    row-gap: var(--footer-space-xl);
-  }
-
-  /* 5 блоков в 3 колонки = дыра во втором ряду: «Мероприятия»
-     занимает две ячейки первого ряда, сетка заполнена полностью */
-  .footer-col--events {
-    grid-column: span 2;
-  }
-
-  .footer-col {
-    min-width: 130px;
-  }
+/* ---------- нейтральный скроллбар в тон подвала ---------- */
+html {
+  scrollbar-color: #2a4a74 #00162e;
+}
+html::-webkit-scrollbar {
+  width: 10px;
+}
+html::-webkit-scrollbar-track {
+  background: #00162e;
+}
+html::-webkit-scrollbar-thumb {
+  border-radius: 8px;
+  background: #2a4a74;
+  border: 2px solid #00162e;
+}
+html::-webkit-scrollbar-thumb:hover {
+  background: #35598a;
 }
 
+/* ================= адаптивность ================= */
+@media (max-width: 1200px) {
+  .footer-brand {
+    grid-column: 1 / -1;
+  }
+  .fc-events {
+    grid-column: 1 / span 6;
+  }
+  .fc-sections {
+    grid-column: 7 / span 6;
+  }
+  .fc-program {
+    grid-column: 1 / span 6;
+  }
+  .fc-profile {
+    grid-column: 7 / span 6;
+  }
+  .footer-contacts > .footer-contact:nth-child(1) {
+    grid-column: 1 / -1;
+  }
+  .footer-contacts > .footer-contact:nth-child(2) {
+    grid-column: 1 / span 6;
+  }
+  .footer-contacts > .footer-contact:nth-child(3) {
+    grid-column: 7 / span 6;
+  }
+  .footer-contacts > .footer-contact:nth-child(4) {
+    grid-column: 1 / span 6;
+  }
+  .footer-contacts > .footer-contact:nth-child(5) {
+    grid-column: 7 / span 6;
+  }
+  .footer-identity {
+    max-width: 560px;
+  }
+}
 @media (max-width: 992px) {
   .footer {
-    --footer-logo: 160px;
+    padding-top: 40px;
   }
-
-  .footer-col-title {
-    font-size: 14px;
-  }
-
   .footer-link {
     font-size: 13px;
   }
-
-  .footer-contact-label {
-    font-size: 11px;
-  }
-
-  .footer-contact-value {
-    font-size: 13px;
-  }
 }
-
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .footer {
-    --footer-logo: 150px;
+    margin-top: 48px;
+    padding-top: 32px;
   }
-
-  .footer-grid {
-    grid-template-columns: repeat(2, 1fr);
-    row-gap: var(--footer-space-l);
+  .footer-container {
+    padding: 0 20px;
   }
-
-  /* Две колонки: «Мероприятия» снова в одну ячейку */
-  .footer-col--events {
-    grid-column: auto;
+  .footer-grid12 {
+    grid-template-columns: 1fr;
+    row-gap: 0;
   }
-
-  /* Контакты — последним рядом ВО ВСЮ ширину: закрыта дыра «один блок
-     в ряду + пустая ячейка» и асимметрия от justify-items: center
-     (ревью P2) */
-  .footer-contacts {
-    order: 10;
+  .footer-grid12 > * {
     grid-column: 1 / -1;
   }
-
-  .footer-slogan {
-    margin-bottom: var(--footer-space-l);
+  /* логотип в футере скрыт: он уже есть в шапке */
+  .footer-logo {
+    display: none;
   }
-
-  /* Нижняя панель: по центру, строки переносятся друг под другом */
+  .footer-brand {
+    gap: 12px;
+    padding-bottom: 24px;
+  }
+  .footer-divider {
+    display: none;
+  }
+  /* аккордеоны: весь ряд кликабелен, границы читаемые */
+  .footer-col {
+    gap: 0;
+    border-bottom: 1px solid var(--hairline-strong);
+  }
+  .fc-events {
+    border-top: 1px solid var(--hairline-strong);
+  }
+  .footer-col-head {
+    justify-content: space-between;
+    min-height: 48px;
+    padding: 14px 4px;
+    cursor: pointer;
+  }
+  .footer-col:hover .footer-col-title::after {
+    width: 20px;
+  }
+  .footer-col-title::after {
+    margin: 6px 0 0;
+  }
+  .acc-panel {
+    grid-template-rows: 0fr;
+  }
+  .acc-panel.open {
+    grid-template-rows: 1fr;
+  }
+  .acc-inner {
+    padding: 0 4px;
+  }
+  .acc-panel.open .acc-inner {
+    padding-bottom: 18px;
+  }
+  /* контакты: собственная сетка 2 колонки, адрес на всю ширину */
+  .footer-contacts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px 16px;
+    padding: 24px 0;
+    border-top: 1px solid var(--hairline-strong);
+  }
+  .footer-contacts > .footer-contact {
+    grid-column: auto;
+  }
+  .footer-contacts > .footer-contact:nth-child(1) {
+    grid-column: 1 / -1;
+  }
   .footer-bottom {
-    justify-content: center;
+    flex-direction: column;
+    align-items: flex-start;
+    padding-top: 18px;
+    border-top: 1px solid var(--hairline-strong);
   }
-
-  .copyright {
-    text-align: center;
+  .footer-totop {
+    display: inline-flex;
   }
 }
-
 @media (max-width: 576px) {
-  .footer {
-    --footer-logo: 130px;
-  }
-
-  .footer-container {
-    padding: 0 var(--footer-space-m);
-  }
-
   .footer-slogan {
     font-size: 14px;
   }
-}
-
-@media (max-width: 480px) {
-  .footer {
-    --footer-logo: 120px;
+  .footer-social {
+    gap: 10px;
   }
-
-  .footer-grid {
+}
+@media (max-width: 480px) {
+  .footer-container {
+    padding: 0 16px;
+  }
+  .social-link {
+    width: 40px;
+    height: 40px;
+  }
+  .social-svg {
+    width: 18px;
+    height: 18px;
+  }
+  .footer-contacts {
     grid-template-columns: 1fr;
   }
-
-  .footer-col {
-    min-width: 0;
-  }
-
   .copyright {
     font-size: 11px;
     line-height: 15px;
   }
 }
-
 @media (max-width: 360px) {
-  .footer {
-    --footer-logo: 100px;
-  }
-
   .footer-container {
-    padding: 0 var(--footer-space-s);
+    padding: 0 16px;
   }
-
   .footer-col-title {
-    font-size: 13px;
+    font-size: 12px;
   }
-
   .footer-link {
     font-size: 12px;
     line-height: 16px;
   }
-
-  .footer-col-list {
-    gap: var(--footer-space-xs);
-  }
-
-  .footer-skeleton-item {
-    height: 32px;
-  }
-
   .copyright {
     font-size: 10px;
     line-height: 14px;
   }
 }
 
-/* ===== Доступность: уважаем «уменьшить движение» ===== */
-
+/* ---------- уважение «уменьшить движение» ---------- */
 @media (prefers-reduced-motion: reduce) {
   .footer *,
   .footer *::before,
@@ -653,14 +800,17 @@ a.footer-contact-value:hover {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-
-  .footer-skeleton-item,
-  .footer-skeleton-note {
+  .footer.js .reveal {
+    opacity: 1;
+    transform: none;
+  }
+  .footer-skeleton-item {
     animation: none;
     background: rgba(255, 255, 255, 0.16);
   }
-
-  .footer-logo-link:hover {
+  .footer-brand-link:hover,
+  .social-link:hover,
+  .footer-more:hover .footer-more-arrow {
     transform: none;
   }
 }
